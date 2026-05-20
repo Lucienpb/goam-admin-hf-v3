@@ -1,3 +1,20 @@
-altair
-pandas
 streamlit
+pandas
+numpy
+matplotlib
+openpyxl
+python-dotenv
+
+# Authentication
+bcrypt
+
+# Web automation (Handicap Scraper)
+playwright
+requests
+
+# Excel handling
+xlrd
+xlsxwriter
+
+# Misc utilities
+python-dateutil

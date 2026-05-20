@@ -1,0 +1,298 @@
+#-------------------------------
+# GOAM ADMIN APP (Final Clean Version)
+#-------------------------------
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import streamlit as st
+from datetime import datetime, timedelta
+
+# AUTH MODULES
+from auth.auth import (
+    verify_token,
+    verify_user_email,
+    reset_password,
+    get_user_role
+)
+from auth.login_page import show_login_page
+from auth.profile_page import show_profile_page
+from auth.admin_page import show_admin_page
+
+# GOAM MODULES
+from apps.pairing_app import run as run_pairing_app
+from apps.handicap_app import run as run_handicap_app
+from apps.scores_app import run_scores_app
+from apps.goam_dashboard import run as run_goam_dashboard
+from utils.handicap_calculator import load_course_data
+from admin.data_manager_page import show_data_manager_page
+
+
+SESSION_TIMEOUT = 3600  # 1 hour
+
+
+# ========================================================================
+# PAGE CONFIG
+# ========================================================================
+st.set_page_config(
+    page_title="GOAM Admin",
+    page_icon="⛳",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+
+# ========================================================================
+# THEME
+# ========================================================================
+def inject_theme():
+    st.markdown("""
+        <style>
+        html, body, [class*="css"]  {
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .main {
+            background-color: #f7f9fc;
+        }
+
+        section[data-testid="stSidebar"] {
+            background-color: #D6ECFF;
+            color: #003366;
+        }
+
+        .stButton>button {
+            background-color: #0b3d91;
+            color: white;
+            border-radius: 6px;
+            padding: 0.6rem 1rem;
+            border: none;
+            font-weight: 600;
+        }
+        .stButton>button:hover {
+            background-color: #0a357f;
+            color: #e6e6e6;
+        }
+        .streamlit-expanderHeader {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0b3d91;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+inject_theme()
+
+
+# ========================================================================
+# SESSION INITIALIZATION
+# ========================================================================
+def init_session():
+    defaults = {
+        "authenticated": False,
+        "email": None,
+        "role": None,
+        "login_time": None,
+        "last_activity": datetime.now(),
+        "course_df": None,
+        "credentials": {"username": None, "password": None},
+        "page": "profile",   # DEFAULT PAGE AFTER LOGIN
+        "handicap_mode": "single"
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+init_session()
+
+
+# ========================================================================
+# SESSION TIMEOUT
+# ========================================================================
+def check_timeout():
+    if not st.session_state.get("authenticated"):
+        return
+
+    last = st.session_state.get("last_activity")
+
+    if isinstance(last, str):
+        try:
+            last = datetime.fromisoformat(last)
+        except:
+            last = datetime.now()
+
+    if datetime.now() - last > timedelta(seconds=SESSION_TIMEOUT):
+        st.warning("Session expired. Please login again.")
+        st.session_state.authenticated = False
+        st.session_state.email = None
+        st.session_state.role = None
+        st.session_state.login_time = None
+        st.session_state.last_activity = None
+        st.rerun()
+
+    st.session_state.last_activity = datetime.now()
+
+check_timeout()
+
+
+# ========================================================================
+# EMAIL VERIFICATION
+# ========================================================================
+def handle_email_verification():
+    params = st.query_params
+    if "token" in params:
+        email = verify_token(params["token"], "email_verification")
+        if email:
+            verify_user_email(email)
+            st.success("Email verified successfully! You can now login.")
+        else:
+            st.error("Invalid or expired verification link.")
+
+handle_email_verification()
+
+
+# ========================================================================
+# PASSWORD RESET
+# ========================================================================
+def handle_password_reset():
+    params = st.query_params
+    if "reset-password" in params:
+        token = params["token"]
+        email = verify_token(token, "password_reset")
+
+        if not email:
+            st.error("Invalid or expired reset link.")
+            return
+
+        st.header("🔐 Reset Password")
+        new_pw = st.text_input("New Password", type="password")
+        confirm_pw = st.text_input("Confirm Password", type="password")
+
+        if st.button("Set New Password", use_container_width=True):
+            if not new_pw:
+                st.error("Password required")
+            elif new_pw != confirm_pw:
+                st.error("Passwords do not match")
+            elif len(new_pw) < 8:
+                st.error("Password must be at least 8 characters")
+            else:
+                ok, msg = reset_password(email, new_pw)
+                if ok:
+                    st.success("Password reset successful!")
+                else:
+                    st.error(msg)
+
+        st.stop()
+
+handle_password_reset()
+
+
+# ========================================================================
+# LOGIN GATE
+# ========================================================================
+if not st.session_state.authenticated:
+    show_login_page()
+    st.stop()
+
+
+# ========================================================================
+# SIDEBAR NAVIGATION (COLLAPSIBLE + PROFILE FIRST)
+# ========================================================================
+st.sidebar.image("assets/goam_logo.png", width='stretch')
+st.sidebar.markdown("---")
+
+# FIRST OPTION: MY PROFILE
+if st.sidebar.button("👤 My Profile"):
+    st.session_state.page = "profile"
+
+st.sidebar.markdown("---")
+
+role = get_user_role(st.session_state.email)
+
+# HANDICAP GROUP
+with st.sidebar.expander("🏌️ Handicap", expanded=False):
+    if st.button("Single Player"):
+        st.session_state.page = "handicap"
+        st.session_state.handicap_mode = "single"
+    if st.button("Batch"):
+        st.session_state.page = "handicap"
+        st.session_state.handicap_mode = "batch"
+    if st.button("Calculator"):
+        st.session_state.page = "handicap"
+        st.session_state.handicap_mode = "calculator"
+
+# PAIRINGS GROUP
+with st.sidebar.expander("⛳ Pairings", expanded=False):
+    if st.button("Matrix"):
+        st.session_state.page = "pairings_matrix"
+    if st.button("4‑Ball Generation"):
+        st.session_state.page = "pairings_gen"
+
+# SCORES GROUP
+with st.sidebar.expander("📘 Scores", expanded=False):
+    if st.button("Leaderboards"):
+        st.session_state.page = "scores_leaderboards"
+    if st.button("Scorecards"):
+        st.session_state.page = "scores_cards"
+
+# DASHBOARD GROUP
+with st.sidebar.expander("📊 Season Dashboard", expanded=False):
+    if st.button("2026 Dashboard"):
+        st.session_state.page = "dashboard"
+
+# ADMIN GROUP
+with st.sidebar.expander("🛠️ Admin", expanded=False):
+    if st.button("User Management"):
+        st.session_state.page = "admin_users"
+    if st.button("Data Manager"):
+        st.session_state.page = "admin_data"
+
+# LAST OPTION: LOGOUT
+st.sidebar.markdown("---")
+if st.sidebar.button("🚪 Logout"):
+    st.session_state.authenticated = False
+    st.session_state.email = None
+    st.session_state.role = None
+    st.session_state.login_time = None
+    st.session_state.last_activity = None
+    st.rerun()
+
+
+# ========================================================================
+# PAGE ROUTING
+# ========================================================================
+page = st.session_state.page
+
+if page == "profile":
+    show_profile_page(st.session_state.email)
+
+elif page == "dashboard":
+    run_goam_dashboard()
+
+elif page == "pairings_matrix":
+    run_pairing_app("matrix")
+
+elif page == "pairings_gen":
+    run_pairing_app("generator")
+
+elif page == "scores_leaderboards":
+    run_scores_app("leaderboards")
+
+elif page == "scores_cards":
+    run_scores_app("scorecards")
+
+elif page == "handicap":
+    username = st.sidebar.text_input("Membership Number")
+    password = st.sidebar.text_input("Password", type="password")
+
+    st.session_state.credentials["username"] = username
+    st.session_state.credentials["password"] = password
+    st.session_state.course_df = load_course_data()
+
+    mode = st.session_state.handicap_mode
+    run_handicap_app(mode, st.session_state.credentials, st.session_state.course_df)
+
+elif page == "admin_users":
+    show_admin_page(st.session_state.email)
+
+elif page == "admin_data":
+    show_data_manager_page()
