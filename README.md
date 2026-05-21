@@ -1,19 +1,13 @@
 ---
 title: Goam Admin
-emoji: 🚀
+emoji: ⛳
+app_file: app.py
 colorFrom: red
 colorTo: red
-sdk: docker
+sdk: streamlit
 app_port: 8501
 tags:
 - streamlit
 pinned: false
 short_description: Goam Admin
----
-
----
-title: GOAM Admin
-emoji: ⛳
-app_file: app.py
-sdk: streamlit
 ---
