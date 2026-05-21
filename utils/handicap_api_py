@@ -1,0 +1,19 @@
+import requests
+
+SCRAPER_URL = "https://lucienpb-handicap-scraper.hf.space/scrape"
+
+def fetch_handicap(username, password, membership_number, fallback_name=None):
+    payload = {
+        "username": username,
+        "password": password,
+        "membership_number": membership_number,
+        "fallback_name": fallback_name
+    }
+
+    response = requests.post(SCRAPER_URL, json=payload, timeout=45)
+
+    if response.status_code != 200:
+        raise Exception(f"Scraper API error: {response.text}")
+
+    data = response.json()
+    return data.get("name"), data.get("index")
