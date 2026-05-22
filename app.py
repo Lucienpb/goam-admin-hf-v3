@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import streamlit as st
 from datetime import datetime, timedelta
+import requests   # <-- Needed for scraper check
 
 # AUTH MODULES
 from auth.auth import (
@@ -29,6 +30,17 @@ from admin.data_manager_page import show_data_manager_page
 
 
 SESSION_TIMEOUT = 3600  # 1 hour
+
+
+# ============================================================
+# SCRAPER STATUS CHECK
+# ============================================================
+def scraper_is_awake(base_url: str) -> bool:
+    try:
+        r = requests.get(base_url, timeout=3)
+        return r.headers.get("content-type", "").startswith("application/json")
+    except:
+        return False
 
 
 # ========================================================================
@@ -95,8 +107,9 @@ def init_session():
         "last_activity": datetime.now(),
         "course_df": None,
         "credentials": {"username": None, "password": None},
-        "page": "profile",   # DEFAULT PAGE AFTER LOGIN
-        "handicap_mode": "single"
+        "page": "profile",
+        "handicap_mode": "single",
+        "scraper_refresh_count": 0,   # <-- NEW
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -195,12 +208,36 @@ if not st.session_state.authenticated:
 
 
 # ========================================================================
-# SIDEBAR NAVIGATION (COLLAPSIBLE + PROFILE FIRST)
+# SCRAPER CHECK (AUTO REFRESH)
+# ========================================================================
+SCRAPER_URL = "https://lucienpb-handicap-scraper.hf.space"
+
+status_placeholder = st.empty()
+
+scraper_awake = scraper_is_awake(SCRAPER_URL)
+
+with status_placeholder.container():
+    col1, col2 = st.columns([0.06, 0.94])
+
+    if scraper_awake:
+        col1.markdown("🟢", unsafe_allow_html=True)
+        col2.success("Handicap Scraper is online and ready.")
+    else:
+        col1.markdown("🔴", unsafe_allow_html=True)
+        col2.warning("Handicap Scraper is offline or waking up. Single Player and Batch are disabled.")
+
+# Auto-refresh every 10 seconds, up to 6 times
+if not scraper_awake and st.session_state.scraper_refresh_count < 6:
+    st.session_state.scraper_refresh_count += 1
+    st.experimental_rerun(delay=10)
+
+
+# ========================================================================
+# SIDEBAR NAVIGATION
 # ========================================================================
 st.sidebar.image("assets/goam_logo.png", width='stretch')
 st.sidebar.markdown("---")
 
-# FIRST OPTION: MY PROFILE
 if st.sidebar.button("👤 My Profile"):
     st.session_state.page = "profile"
 
@@ -210,15 +247,22 @@ role = get_user_role(st.session_state.email)
 
 # HANDICAP GROUP
 with st.sidebar.expander("🏌️ Handicap", expanded=False):
-    if st.button("Single Player"):
-        st.session_state.page = "handicap"
-        st.session_state.handicap_mode = "single"
-    if st.button("Batch"):
-        st.session_state.page = "handicap"
-        st.session_state.handicap_mode = "batch"
+
+    if not scraper_awake:
+        st.button("Single Player", disabled=True)
+        st.button("Batch", disabled=True)
+    else:
+        if st.button("Single Player"):
+            st.session_state.page = "handicap"
+            st.session_state.handicap_mode = "single"
+        if st.button("Batch"):
+            st.session_state.page = "handicap"
+            st.session_state.handicap_mode = "batch"
+
     if st.button("Calculator"):
         st.session_state.page = "handicap"
         st.session_state.handicap_mode = "calculator"
+
 
 # PAIRINGS GROUP
 with st.sidebar.expander("⛳ Pairings", expanded=False):
@@ -227,6 +271,7 @@ with st.sidebar.expander("⛳ Pairings", expanded=False):
     if st.button("4‑Ball Generation"):
         st.session_state.page = "pairings_gen"
 
+
 # SCORES GROUP
 with st.sidebar.expander("📘 Scores", expanded=False):
     if st.button("Leaderboards"):
@@ -234,10 +279,12 @@ with st.sidebar.expander("📘 Scores", expanded=False):
     if st.button("Scorecards"):
         st.session_state.page = "scores_cards"
 
+
 # DASHBOARD GROUP
 with st.sidebar.expander("📊 Season Dashboard", expanded=False):
     if st.button("2026 Dashboard"):
         st.session_state.page = "dashboard"
+
 
 # ADMIN GROUP
 with st.sidebar.expander("🛠️ Admin", expanded=False):
@@ -246,7 +293,7 @@ with st.sidebar.expander("🛠️ Admin", expanded=False):
     if st.button("Data Manager"):
         st.session_state.page = "admin_data"
 
-# LAST OPTION: LOGOUT
+
 st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Logout"):
     st.session_state.authenticated = False
