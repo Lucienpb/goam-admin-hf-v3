@@ -47,7 +47,7 @@ def _load_user_stats(email):
     if not player_name:
         return None
 
-    # Filter GOAM rounds by exact name match
+    # LOWERCASE comparison for matching names
     user_rounds = season_df[season_df["Name"].str.lower() == player_name.lower()]
 
     if user_rounds.empty:
@@ -65,8 +65,6 @@ def _load_user_stats(email):
         "team": player.get("team"),
         "handicap_index": player.get("handicap_index")
     }
-
-
 
 # ---------------------------------------------------------
 # PROFILE PHOTO HELPERS
