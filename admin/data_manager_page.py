@@ -106,7 +106,7 @@ def delta_load_course_data(df: pd.DataFrame):
 # PLAYERS SECTION
 # -------------------------------------------------------------------
 def convert_players_excel_to_json(df):
-    required_cols = ["Name", "membership_number", "Handicap Index Cap"]
+    required_cols = ["Name", "membership_number", "Handicap Index Cap", "Email"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns in Players.xlsx: {missing}")
@@ -132,6 +132,7 @@ def convert_players_excel_to_json(df):
             "membership": membership,
             "handicap_index": handicap_index,
             "team": team,
+            "email": safe_str(row.get("Email")),
             "Nick1": safe_str(row.get("Nick1")),
             "Nick2": safe_str(row.get("Nick2")),
             "Nick3": safe_str(row.get("Nick3")),
