@@ -26,19 +26,29 @@ PHOTO_DIR = "data/profile_photos"
 # ---------------------------------------------------------
 def _load_user_stats(email):
     try:
+        # Load GOAM scores
         goam_scores = GOAMLoader.load_json_scores("data/goam_scores.json")
         season_df = GOAMCalculator.build_from_json(goam_scores)
+
+        # Load players.json
+        players = GOAMLoader.load_json("data/players.json")
     except Exception:
         return None
 
-    if season_df.empty:
+    if season_df.empty or not players:
         return None
 
-    # Membership number = email prefix
-    membership = email.split("@")[0]
+    # Find player by email (case-insensitive)
+    player = next((p for p in players if p.get("email", "").lower() == email.lower()), None)
+    if not player:
+        return None
 
-    # Match name by membership number prefix
-    user_rounds = season_df[season_df["Name"].str.contains(membership, case=False, na=False)]
+    player_name = player.get("name")
+    if not player_name:
+        return None
+
+    # Filter GOAM rounds by exact name match
+    user_rounds = season_df[season_df["Name"].str.lower() == player_name.lower()]
 
     if user_rounds.empty:
         return None
@@ -51,8 +61,11 @@ def _load_user_stats(email):
         "avg_ips": avg_ips,
         "avg_strokes": avg_strokes,
         "games_played": games_played,
-        "membership": membership
+        "membership": player.get("membership"),
+        "team": player.get("team"),
+        "handicap_index": player.get("handicap_index")
     }
+
 
 
 # ---------------------------------------------------------
