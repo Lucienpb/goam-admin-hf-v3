@@ -71,7 +71,8 @@ def github_save_json(path, obj):
     Automatically handles SHA for updates.
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}"
-
+    print("DEBUG URL:", url)
+    print("DEBUG REPO:", GITHUB_REPO)
     # Convert object to JSON string
     content_str = json.dumps(obj, indent=2)
     encoded = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
