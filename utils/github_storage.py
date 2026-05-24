@@ -43,8 +43,9 @@ def github_load_json(path):
     Returns Python dict/list or None if file does not exist.
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}?ref={GITHUB_BRANCH}"
+    print("DEBUG REPO:", repr(GITHUB_REPO))
+    print("DEBUG PATH:", repr(path))
     print("DEBUG URL:", url)
-    print("DEBUG REPO:", GITHUB_REPO)
 
     try:
         data = _github_request("GET", url)
