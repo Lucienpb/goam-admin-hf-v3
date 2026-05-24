@@ -11,10 +11,8 @@ Allows:
 import streamlit as st
 import os
 from datetime import datetime
-import pandas as pd  # (kept in case used elsewhere)
 
 from auth.auth import load_users, save_users, verify_password, change_password
-from backend.goam_loader import GOAMLoader  # (kept for consistency, not used here)
 from backend.goam_calculator import GOAMCalculator
 from utils.github_storage import save_user_record
 
@@ -26,10 +24,8 @@ PHOTO_DIR = "data/profile_photos"
 # ---------------------------------------------------------
 def _load_user_stats(email: str):
     try:
-        # Load from session_state (GitHub-synced data)
         goam_scores = st.session_state.get("goam_scores", {})
         players = st.session_state.get("players", [])
-
         season_df = GOAMCalculator.build_from_json(goam_scores)
     except Exception:
         return None
@@ -37,7 +33,7 @@ def _load_user_stats(email: str):
     if season_df.empty or not players:
         return None
 
-    # Find player by email (case-insensitive)
+    # Find player by email
     player = next(
         (p for p in players if p.get("email", "").lower() == email.lower()),
         None,
@@ -59,21 +55,33 @@ def _load_user_stats(email: str):
     avg_strokes = round(user_rounds["Strokes"].mean(), 0)
     games_played = len(user_rounds)
 
-    # Games won (highest IPS per date)
+    # Course → Month mapping (Services = future)
+    course_month_map = {
+        "Akasia": 2,
+        "PGC": 3,
+        "Kyalami": 4,
+        "Copperleaf": 5,
+        "Services": 6,  # future — must not count
+    }
+
+    # Remove future course
+    season_df = season_df[season_df["Course"] != "Services"]
+
+    # Games won (highest IPS per course)
     games_won = 0
-    for _, group in season_df.groupby("Date"):
+    for course, group in season_df.groupby("Course"):
         winner = group.loc[group["IPS"].idxmax()]
         if winner["Name"].strip().lower() == player_name.strip().lower():
             games_won += 1
 
-    # OX Nau count (lowest IPS per date)
+    # OX Nau count (lowest IPS per course)
     ox_count = 0
-    for _, group in season_df.groupby("Date"):
+    for course, group in season_df.groupby("Course"):
         ox = group.loc[group["IPS"].idxmin()]
         if ox["Name"].strip().lower() == player_name.strip().lower():
             ox_count += 1
 
-    # Log position (by total IPS, descending)
+    # Log position (by total IPS)
     leaderboard = (
         season_df.groupby("Name")["IPS"]
         .sum()
@@ -81,6 +89,7 @@ def _load_user_stats(email: str):
         .reset_index()
     )
     leaderboard["Position"] = leaderboard.index + 1
+
     row = leaderboard[leaderboard["Name"].str.lower() == player_name.lower()]
     log_position = int(row["Position"].iloc[0]) if not row.empty else None
 
@@ -271,4 +280,3 @@ def show_profile_page(email: str):
             st.stop()
         else:
             st.error(msg)
-
