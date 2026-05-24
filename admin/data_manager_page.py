@@ -12,7 +12,8 @@
 import streamlit as st
 import pandas as pd
 import os
-from utils.json_utils import load_json, save_json
+
+from utils.github_storage import github_load_json, github_save_json
 
 # -------------------------------------------------------------------
 # SAFE HELPERS
@@ -85,11 +86,11 @@ def convert_course_excel_to_json(df: pd.DataFrame):
 
 def full_load_course_data(df: pd.DataFrame):
     data = convert_course_excel_to_json(df)
-    save_json("data/course_data.json", data)
+    github_save_json("data/course_data.json", data)
 
 
 def delta_load_course_data(df: pd.DataFrame):
-    existing = load_json("data/course_data.json") or {}
+    existing = github_load_json("data/course_data.json") or {}
     incoming = convert_course_excel_to_json(df)
 
     for course, data in incoming.items():
@@ -99,7 +100,7 @@ def delta_load_course_data(df: pd.DataFrame):
             existing[course].setdefault("tees", {})
             existing[course]["tees"].update(data["tees"])
 
-    save_json("data/course_data.json", existing)
+    github_save_json("data/course_data.json", existing)
 
 
 # -------------------------------------------------------------------
@@ -144,11 +145,11 @@ def convert_players_excel_to_json(df):
 
 def full_load_players(df: pd.DataFrame):
     data = convert_players_excel_to_json(df)
-    save_json("data/players.json", data)
+    github_save_json("data/players.json", data)
 
 
 def delta_load_players(df: pd.DataFrame):
-    existing = load_json("data/players.json") or []
+    existing = github_load_json("data/players.json") or []
     incoming = convert_players_excel_to_json(df)
 
     existing_map = {p["membership"]: p for p in existing}
@@ -157,7 +158,7 @@ def delta_load_players(df: pd.DataFrame):
         existing_map[p["membership"]] = p
 
     merged = list(existing_map.values())
-    save_json("data/players.json", merged)
+    github_save_json("data/players.json", merged)
 
 
 # -------------------------------------------------------------------
@@ -216,15 +217,15 @@ def convert_pairings_excel_to_json(df: pd.DataFrame):
 
 def full_load_pairings(df: pd.DataFrame):
     month_key, data = convert_pairings_excel_to_json(df)
-    save_json("data/pairings.json", {month_key: data})
+    github_save_json("data/pairings.json", {month_key: data})
 
 
 def delta_load_pairings(df: pd.DataFrame):
-    existing = load_json("data/pairings.json") or {}
+    existing = github_load_json("data/pairings.json") or {}
     month_key, data = convert_pairings_excel_to_json(df)
 
     existing[month_key] = data
-    save_json("data/pairings.json", existing)
+    github_save_json("data/pairings.json", existing)
 
 
 # -------------------------------------------------------------------
@@ -360,17 +361,17 @@ def convert_goam_scores_workbook_to_json(xls: dict):
 
 def full_load_goam_scores(xls: dict):
     data = convert_goam_scores_workbook_to_json(xls)
-    save_json("data/goam_scores.json", data)
+    github_save_json("data/goam_scores.json", data)
 
 
 def delta_load_goam_scores(xls: dict):
-    existing = load_json("data/goam_scores.json") or {}
+    existing = github_load_json("data/goam_scores.json") or {}
     incoming = convert_goam_scores_workbook_to_json(xls)
 
     for month, data in incoming.items():
         existing[month] = data
 
-    save_json("data/goam_scores.json", existing)
+    github_save_json("data/goam_scores.json", existing)
 
 
 # -------------------------------------------------------------------
@@ -482,35 +483,26 @@ def show_data_manager_page():
     }
 
     for label, path in data_files.items():
-        if os.path.exists(path):
-            try:
-                # Load JSON
-                data = load_json(path)
+        try:
+            data = github_load_json(path)
 
-                # Convert to DataFrame depending on structure
-                if isinstance(data, dict):
-                    # Pairings, Courses, GOAM Scores
-                    df = pd.json_normalize(data, sep="_")
-                elif isinstance(data, list):
-                    # Players
-                    df = pd.DataFrame(data)
-                else:
-                    st.warning(f"Unsupported format in {label}")
-                    continue
+            if isinstance(data, dict):
+                df = pd.json_normalize(data, sep="_")
+            elif isinstance(data, list):
+                df = pd.DataFrame(data)
+            else:
+                st.warning(f"Unsupported format in {label}")
+                continue
 
-                # Convert to CSV bytes
-                csv_bytes = df.to_csv(index=False).encode("utf-8")
+            csv_bytes = df.to_csv(index=False).encode("utf-8")
 
-                st.download_button(
-                    label=f"Download {label} (CSV)",
-                    data=csv_bytes,
-                    file_name=f"{label.replace(' ', '_').lower()}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+            st.download_button(
+                label=f"Download {label} (CSV)",
+                data=csv_bytes,
+                file_name=f"{label.replace(' ', '_').lower()}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
 
-            except Exception as e:
-                st.error(f"Error converting {label} to CSV: {e}")
-
-        else:
-            st.warning(f"{label} file not found: {path}")
+        except Exception as e:
+            st.error(f"Error converting {label} to CSV: {e}")
