@@ -11,10 +11,10 @@ Allows:
 import streamlit as st
 import os
 from datetime import datetime
-import pandas as pd
+import pandas as pd  # (kept in case used elsewhere)
 
 from auth.auth import load_users, save_users, verify_password, change_password
-from backend.goam_loader import GOAMLoader
+from backend.goam_loader import GOAMLoader  # (kept for consistency, not used here)
 from backend.goam_calculator import GOAMCalculator
 from utils.github_storage import save_user_record
 
@@ -24,15 +24,13 @@ PHOTO_DIR = "data/profile_photos"
 # ---------------------------------------------------------
 # LOAD USER STATS FROM GOAM SCORES
 # ---------------------------------------------------------
-def _load_user_stats(email):
+def _load_user_stats(email: str):
     try:
-        # Load GOAM scores
-        # NEW: Load from session_state instead of disk
+        # Load from session_state (GitHub-synced data)
         goam_scores = st.session_state.get("goam_scores", {})
         players = st.session_state.get("players", [])
-        
-        season_df = GOAMCalculator.build_from_json(goam_scores)
 
+        season_df = GOAMCalculator.build_from_json(goam_scores)
     except Exception:
         return None
 
@@ -40,7 +38,10 @@ def _load_user_stats(email):
         return None
 
     # Find player by email (case-insensitive)
-    player = next((p for p in players if p.get("email", "").lower() == email.lower()), None)
+    player = next(
+        (p for p in players if p.get("email", "").lower() == email.lower()),
+        None,
+    )
     if not player:
         return None
 
@@ -48,39 +49,68 @@ def _load_user_stats(email):
     if not player_name:
         return None
 
-    # LOWERCASE comparison for matching names
+    # All rounds for this player
     user_rounds = season_df[season_df["Name"].str.lower() == player_name.lower()]
-
     if user_rounds.empty:
         return None
 
+    # Basic stats
     avg_ips = round(user_rounds["IPS"].mean(), 0)
     avg_strokes = round(user_rounds["Strokes"].mean(), 0)
     games_played = len(user_rounds)
+
+    # Games won (highest IPS per date)
+    games_won = 0
+    for _, group in season_df.groupby("Date"):
+        winner = group.loc[group["IPS"].idxmax()]
+        if winner["Name"].strip().lower() == player_name.strip().lower():
+            games_won += 1
+
+    # OX Nau count (lowest IPS per date)
+    ox_count = 0
+    for _, group in season_df.groupby("Date"):
+        ox = group.loc[group["IPS"].idxmin()]
+        if ox["Name"].strip().lower() == player_name.strip().lower():
+            ox_count += 1
+
+    # Log position (by total IPS, descending)
+    leaderboard = (
+        season_df.groupby("Name")["IPS"]
+        .sum()
+        .sort_values(ascending=False)
+        .reset_index()
+    )
+    leaderboard["Position"] = leaderboard.index + 1
+    row = leaderboard[leaderboard["Name"].str.lower() == player_name.lower()]
+    log_position = int(row["Position"].iloc[0]) if not row.empty else None
 
     return {
         "avg_ips": avg_ips,
         "avg_strokes": avg_strokes,
         "games_played": games_played,
+        "games_won": games_won,
+        "ox_count": ox_count,
+        "log_position": log_position,
         "membership": player.get("membership"),
         "team": player.get("team"),
-        "handicap_index": player.get("handicap_index")
+        "handicap_index": player.get("handicap_index"),
     }
+
 
 # ---------------------------------------------------------
 # PROFILE PHOTO HELPERS
 # ---------------------------------------------------------
-def _get_photo_path(email):
+def _get_photo_path(email: str) -> str:
     os.makedirs(PHOTO_DIR, exist_ok=True)
     return os.path.join(PHOTO_DIR, f"{email}.jpg")
 
 
-def _load_profile_photo(email):
+def _load_profile_photo(email: str):
     path = _get_photo_path(email)
     return path if os.path.exists(path) else None
 
 
-def _save_profile_photo(email, uploaded_file):
+def _save_profile_photo(email: str, uploaded_file):
     path = _get_photo_path(email)
     with open(path, "wb") as f:
         f.write(uploaded_file.getbuffer())
@@ -110,11 +140,20 @@ def show_profile_page(email: str):
     stats = _load_user_stats(email_norm)
 
     if stats:
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Membership No.", stats["membership"])
-        col2.metric("Avg IPS", stats["avg_ips"])
-        col3.metric("Avg Strokes", stats["avg_strokes"])
-        col4.metric("Games Played", stats["games_played"])
+        st.markdown(
+            f"""
+### 🧾 My GOAM Summary
+
+🏌️ **Membership:** {stats['membership']}  
+
+📊 **IPS:** {stats['avg_ips']}  
+📉 **Strokes:** {stats['avg_strokes']}  
+🎯 **Games Played:** {stats['games_played']}  
+🏆 **Games Won:** {stats['games_won']}  
+📈 **Log Position:** {stats['log_position']}  
+🐂 **OX Nau:** {stats['ox_count']}
+"""
+        )
     else:
         st.info("No GOAM rounds found for your profile yet.")
 
@@ -171,13 +210,9 @@ def show_profile_page(email: str):
         user["name"] = name
         user["phone"] = phone
         user["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
         users[email_norm] = user
         save_users(users)
-    
-        # ------------------------------------------------------------
-        # NEW: Push updated user record to GitHub
-        # ------------------------------------------------------------
 
         try:
             save_user_record(email_norm, user)
@@ -188,7 +223,7 @@ def show_profile_page(email: str):
 
         st.success("Profile updated successfully!")
         st.stop()
-    
+
     st.markdown("---")
 
     # ====================================================================
@@ -221,23 +256,19 @@ def show_profile_page(email: str):
         success, msg = change_password(email_norm, current_pw, new_pw)
 
         if success:
-            # ------------------------------------------------------------
-            # NEW: Sync updated password to GitHub
-            # ------------------------------------------------------------
-            from utils.github_storage import save_user_record
             try:
-                # Reload users.json because change_password() already updated it
                 updated_users = load_users()
                 updated_user = updated_users[email_norm]
-        
+
                 save_user_record(email_norm, updated_user)
                 st.session_state["users"][email_norm] = updated_user
-        
+
             except Exception as e:
                 st.error(f"Password updated locally but failed to sync to GitHub: {e}")
                 return
-        
+
             st.success(msg)
+            st.stop()
         else:
             st.error(msg)
 
