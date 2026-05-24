@@ -16,7 +16,7 @@ import pandas as pd
 from auth.auth import load_users, save_users, verify_password, change_password
 from backend.goam_loader import GOAMLoader
 from backend.goam_calculator import GOAMCalculator
-
+from utils.github_storage import save_user_record
 
 PHOTO_DIR = "data/profile_photos"
 
@@ -170,12 +170,24 @@ def show_profile_page(email: str):
         user["name"] = name
         user["phone"] = phone
         user["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+    
         users[email_norm] = user
         save_users(users)
+    
+        # ------------------------------------------------------------
+        # NEW: Push updated user record to GitHub
+        # ------------------------------------------------------------
 
-        st.success("Profile updated successfully!")
-        st.rerun()
+        try:
+            save_user_record(email_norm, user)
+            st.session_state["users"][email_norm] = user
+        except Exception as e:
+            st.error(f"Failed to sync profile to GitHub: {e}")
+            return
+
+    st.success("Profile updated successfully!")
+    st.rerun()
+
 
     st.markdown("---")
 
@@ -209,7 +221,24 @@ def show_profile_page(email: str):
         success, msg = change_password(email_norm, current_pw, new_pw)
 
         if success:
+            # ------------------------------------------------------------
+            # NEW: Sync updated password to GitHub
+            # ------------------------------------------------------------
+            from utils.github_storage import save_user_record
+            try:
+                # Reload users.json because change_password() already updated it
+                updated_users = load_users()
+                updated_user = updated_users[email_norm]
+        
+                save_user_record(email_norm, updated_user)
+                st.session_state["users"][email_norm] = updated_user
+        
+            except Exception as e:
+                st.error(f"Password updated locally but failed to sync to GitHub: {e}")
+                return
+        
             st.success(msg)
             st.rerun()
         else:
             st.error(msg)
+
