@@ -27,11 +27,12 @@ PHOTO_DIR = "data/profile_photos"
 def _load_user_stats(email):
     try:
         # Load GOAM scores
-        goam_scores = GOAMLoader.load_json_scores("data/goam_scores.json")
+        # NEW: Load from session_state instead of disk
+        goam_scores = st.session_state.get("goam_scores", {})
+        players = st.session_state.get("players", [])
+        
         season_df = GOAMCalculator.build_from_json(goam_scores)
 
-        # Load players.json
-        players = GOAMLoader.load_json("data/players.json")
     except Exception:
         return None
 
