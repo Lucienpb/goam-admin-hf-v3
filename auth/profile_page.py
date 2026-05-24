@@ -65,7 +65,9 @@ def _load_user_stats(email: str):
     }
 
     # Remove future course
-    season_df = season_df[season_df["Course"] != "Services"]
+    season_df = season_df[
+    season_df["Course"].astype(str).str.strip().str.lower() != "services"
+    ]
 
     # Games won (highest IPS per course)
     games_won = 0
