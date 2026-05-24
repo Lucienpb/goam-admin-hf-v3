@@ -236,7 +236,6 @@ def show_profile_page(email: str):
                 return
         
             st.success(msg)
-            st.rerun()
         else:
             st.error(msg)
 
