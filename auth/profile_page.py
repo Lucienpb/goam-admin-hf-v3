@@ -151,7 +151,7 @@ def show_profile_page(email: str):
     if stats:
         st.markdown(
             f"""
-### 🧾 My GOAM Summary
+
 
 🏌️ **Membership:** {stats['membership']}  
 
