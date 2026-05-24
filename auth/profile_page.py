@@ -186,9 +186,7 @@ def show_profile_page(email: str):
             return
 
     st.success("Profile updated successfully!")
-    st.rerun()
-
-
+    
     st.markdown("---")
 
     # ====================================================================
