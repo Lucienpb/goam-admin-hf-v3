@@ -16,7 +16,6 @@ if not GITHUB_TOKEN:
 if not GITHUB_REPO:
     raise RuntimeError("GITHUB_REPO is missing in Hugging Face Secrets")
 
-st.write("DEBUG REPO:", GITHUB_REPO)
 # ------------------------------------------------------------
 # Internal helper: GitHub API request
 # ------------------------------------------------------------
