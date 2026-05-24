@@ -75,7 +75,7 @@ def show_single_player(credentials, course_df):
                 st.error(f"Error calling Handicap API: {e}")
                 return
 
-        st.write("DEBUG single:", {"member": member, "name": name, "index": index})
+#        st.write("DEBUG single:", {"member": member, "name": name, "index": index})
 
         if not name:
             st.error("Player not found.")
