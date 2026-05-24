@@ -186,7 +186,8 @@ def show_profile_page(email: str):
             st.error(f"Failed to sync profile to GitHub: {e}")
             return
 
-    st.success("Profile updated successfully!")
+        st.success("Profile updated successfully!")
+        st.stop()
     
     st.markdown("---")
 
