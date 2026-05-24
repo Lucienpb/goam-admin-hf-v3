@@ -16,6 +16,8 @@ from pathlib import Path
 
 from auth.auth import load_users, verify_password, USERS_FILE
 
+from utils.github_storage import load_all_app_data
+
 # ========================================================================
 # THROTTLE / LOCKOUT SETTINGS
 # ========================================================================
@@ -145,7 +147,25 @@ def show_login_page():
     # --- SUCCESS ---
     record_successful_login(email_norm)
     st.success("Login successful!")
+    # ------------------------------------------------------------
+    # NEW: Load all GitHub data after successful login
+    # ------------------------------------------------------------
 
+    try:
+        app_data = load_all_app_data()
+
+        # Store each file in session_state for global access
+        for path, payload in app_data.items():
+            key = path.replace("data/", "").replace(".json", "")
+            st.session_state[key] = payload["data"]
+            st.session_state[f"{key}_sha"] = payload["sha"]
+
+        st.info("GitHub data loaded successfully.")
+
+    except Exception as e:
+        st.error(f"Failed to load data from GitHub: {e}")
+        return
+    #
     st.session_state.authenticated = True
     st.session_state.email = email_norm
     st.session_state.role = user.get("role", "member")
