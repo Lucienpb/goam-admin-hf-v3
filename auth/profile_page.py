@@ -155,8 +155,8 @@ def show_profile_page(email: str):
 
 🏌️ **Membership:** {stats['membership']}  
 
-📊 **IPS:** {stats['avg_ips']}  
-📉 **Strokes:** {stats['avg_strokes']}  
+📊 **IPS: Avg.** {stats['avg_ips']}  
+📉 **Strokes: Avg.** {stats['avg_strokes']}  
 🎯 **Games Played:** {stats['games_played']}  
 🏆 **Games Won:** {stats['games_won']}  
 📈 **Log Position:** {stats['log_position']}  
