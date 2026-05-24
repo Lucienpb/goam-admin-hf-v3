@@ -145,6 +145,8 @@ def convert_players_excel_to_json(df):
 
 def full_load_players(df: pd.DataFrame):
     data = convert_players_excel_to_json(df)
+
+    print(df)
     github_save_json("data/players.json", data)
 
 
