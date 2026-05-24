@@ -399,6 +399,11 @@ def show_data_manager_page():
                 else:
                     delta_load_course_data(df)
                     st.success("Course data merged (delta load).")
+                # NEW: Refresh session_state for course_data
+                from utils.github_storage import github_load_json
+                data, sha = github_load_json("data/course_data.json")
+                st.session_state["course_data"] = data
+                st.session_state["course_data_sha"] = sha    
             except Exception as e:
                 st.error(f"Error processing course data: {e}")
 
@@ -421,6 +426,11 @@ def show_data_manager_page():
                 else:
                     delta_load_players(df)
                     st.success("Players merged (delta load).")
+                # NEW: Refresh session_state for players
+                data, sha = github_load_json("data/players.json")
+                st.session_state["players"] = data
+                st.session_state["players_sha"] = sha
+    
             except Exception as e:
                 st.error(f"Error processing player data: {e}")
 
@@ -443,6 +453,10 @@ def show_data_manager_page():
                 else:
                     delta_load_pairings(df)
                     st.success("Pairings merged (delta load).")
+                # NEW: Refresh session_state for pairings
+                data, sha = github_load_json("data/pairings.json")
+                st.session_state["pairings"] = data
+                st.session_state["pairings_sha"] = sha    
             except Exception as e:
                 st.error(f"Error processing pairing data: {e}")
 
@@ -469,6 +483,11 @@ def show_data_manager_page():
                 else:
                     delta_load_goam_scores(xls)
                     st.success("GOAM scores merged (delta load).")
+                # NEW: Refresh session_state for goam_scores
+                data, sha = github_load_json("data/goam_scores.json")
+                st.session_state["goam_scores"] = data
+                st.session_state["goam_scores_sha"] = sha
+
             except Exception as e:
                 st.error(f"Error processing GOAM scores: {e}")
 
