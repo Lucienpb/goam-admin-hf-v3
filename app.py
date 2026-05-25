@@ -217,7 +217,7 @@ status_placeholder = st.empty()
 scraper_awake = scraper_is_awake(SCRAPER_URL)
 
 with status_placeholder.container():
-    col1 = st.columns([0.06])
+    col1, = st.columns([0.06])
 
     if scraper_awake:
         col1.markdown("🟢", unsafe_allow_html=True)
