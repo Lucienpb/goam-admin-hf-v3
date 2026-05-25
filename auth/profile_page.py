@@ -155,7 +155,8 @@ def show_profile_page(email: str):
         st.markdown(
             f"""
 🏌️ **Membership:** {stats['membership']}  
-📏 **Handicap Index Cap:** {user.get('handicap_cap', 'N/A')}
+📏 **Handicap Index Cap:** {stats,['handicap_index'] ,'N/A')}
+   **LIV Team:** {stats,['team']}
 
 📊 **IPS: Avg.** {stats['avg_ips']}  
 📉 **Strokes: Avg.** {stats['avg_strokes']}  
