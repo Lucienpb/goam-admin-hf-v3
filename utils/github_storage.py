@@ -41,31 +41,27 @@ def _github_request(method, url, **kwargs):
 # ------------------------------------------------------------
 def github_load_json(path):
     """
-    Loads a JSON file from the GitHub repo.
+    Loads a JSON file from GitHub.
     Returns (data, sha) or (None, None) if file does not exist.
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}?ref={GITHUB_BRANCH}"
-
-    print("DEBUG REPO:", repr(GITHUB_REPO))
-    print("DEBUG PATH:", repr(path))
-    print("DEBUG URL:", url)
 
     try:
         data = _github_request("GET", url)
     except RuntimeError:
         return None, None  # File does not exist
 
-    if "content" not in data:
-        return None, None
+    sha = data.get("sha")
 
-    decoded = base64.b64decode(data["content"]).decode("utf-8")
-
+    # Decode file content
     try:
+        decoded = base64.b64decode(data["content"]).decode("utf-8")
         json_data = json.loads(decoded)
     except Exception:
-        return None, None
+        # File exists but JSON is invalid — return empty dict but keep SHA
+        return {}, sha
 
-    return json_data, data.get("sha")
+    return json_data, sha
 
 
 # ------------------------------------------------------------
@@ -155,15 +151,15 @@ def save_json_with_sha(path, new_data):
 # NEW: Save a single user's updated record
 # ------------------------------------------------------------
 def save_user_record(username, updated_record):
-    """
-    Updates only one user's record inside users.json.
-    """
     path = "data/users.json"
 
     users, sha = github_load_json(path)
 
     if users is None:
         raise RuntimeError("users.json could not be loaded from GitHub")
+
+    if not isinstance(users, dict):
+        users = {}
 
     users[username] = updated_record
 
@@ -175,3 +171,4 @@ def save_user_record(username, updated_record):
     )
 
     return True
+
