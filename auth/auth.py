@@ -15,7 +15,6 @@ from email.mime.multipart import MIMEMultipart
 from typing import Optional, Dict, Tuple
 import bcrypt
 
-
 # ========================================================================
 # CONFIGURATION
 # ========================================================================
@@ -40,14 +39,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 # ========================================================================
 # EMAIL NORMALIZATION
 # ========================================================================
 
 def normalize_email(email: str) -> str:
     return email.strip().lower()
-
 
 # ========================================================================
 # EMAIL VALIDATION
@@ -57,9 +54,8 @@ def validate_email(email: str) -> bool:
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return re.match(pattern, email) is not None
 
-
 # ========================================================================
-# USER STORAGE
+# USER STORAGE (LOCAL ONLY — GitHub sync handled elsewhere)
 # ========================================================================
 
 def _ensure_users_file():
@@ -67,11 +63,17 @@ def _ensure_users_file():
     if not USERS_FILE.exists():
         USERS_FILE.write_text(json.dumps({}, indent=2))
 
+def load_users_raw() -> Dict:
+    _ensure_users_file()
+    try:
+        return json.loads(USERS_FILE.read_text())
+    except Exception:
+        return {}
 
 def migrate_users_to_lowercase():
     users = load_users_raw()
-    changed = False
     new_users = {}
+    changed = False
 
     for email, data in users.items():
         email_norm = normalize_email(email)
@@ -83,20 +85,12 @@ def migrate_users_to_lowercase():
         save_users(new_users)
         logger.info("Migrated all user emails to lowercase")
 
-
-def load_users_raw() -> Dict:
-    _ensure_users_file()
-    return json.loads(USERS_FILE.read_text())
-
-
 def load_users() -> Dict:
     migrate_users_to_lowercase()
     return load_users_raw()
 
-
 def save_users(users: Dict):
     USERS_FILE.write_text(json.dumps(users, indent=2))
-
 
 # ========================================================================
 # TOKEN MANAGEMENT
@@ -107,10 +101,8 @@ def _ensure_token_store():
     if not TOKEN_STORE_FILE.exists():
         TOKEN_STORE_FILE.write_text(json.dumps({}, indent=2))
 
-
 def generate_secure_token() -> str:
     return secrets.token_urlsafe(32)
-
 
 def store_token(token: str, email: str, token_type: str, expiry_seconds: int):
     _ensure_token_store()
@@ -124,7 +116,6 @@ def store_token(token: str, email: str, token_type: str, expiry_seconds: int):
     }
 
     TOKEN_STORE_FILE.write_text(json.dumps(tokens, indent=2))
-
 
 def verify_token(token: str, token_type: str) -> Optional[str]:
     _ensure_token_store()
@@ -150,7 +141,6 @@ def verify_token(token: str, token_type: str) -> Optional[str]:
 
     return email
 
-
 # ========================================================================
 # PASSWORD HASHING
 # ========================================================================
@@ -159,12 +149,10 @@ def hash_password(password: str) -> str:
     salt = bcrypt.gensalt(rounds=12)
     return bcrypt.hashpw(password.encode(), salt).decode()
 
-
 def verify_password(password: str, password_hash: str) -> bool:
     if not password_hash:
         return False
     return bcrypt.checkpw(password.encode(), password_hash.encode())
-
 
 # ========================================================================
 # EMAIL SENDING
@@ -190,7 +178,6 @@ def send_email(recipient_email: str, subject: str, html_body: str) -> bool:
         logger.error(f"Failed to send email to {recipient_email}: {str(e)}")
         return False
 
-
 def send_verification_email(email: str, token: str, verification_url_base: str) -> bool:
     verification_url = f"{verification_url_base}?token={token}"
 
@@ -205,7 +192,6 @@ def send_verification_email(email: str, token: str, verification_url_base: str) 
     """
 
     return send_email(email, "Verify Your Email", html_body)
-
 
 def send_password_reset_email(email: str, token: str, reset_url_base: str) -> bool:
     reset_url = f"{reset_url_base}?token={token}"
@@ -222,7 +208,6 @@ def send_password_reset_email(email: str, token: str, reset_url_base: str) -> bo
 
     return send_email(email, "Reset Your Password", html_body)
 
-
 # ========================================================================
 # USER MANAGEMENT
 # ========================================================================
@@ -231,7 +216,6 @@ def user_exists(email: str) -> bool:
     email = normalize_email(email)
     users = load_users()
     return email in users
-
 
 def create_user(email: str, password: str, role: str = "member") -> Tuple[bool, str]:
     email = normalize_email(email)
@@ -252,13 +236,13 @@ def create_user(email: str, password: str, role: str = "member") -> Tuple[bool, 
         "password_hash": password_hash,
         "role": role,
         "verified": False,
-        "created_at": datetime.now().isoformat()
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
     }
     save_users(users)
 
     logger.info(f"User created: {email} (role: {role})")
     return True, "User created successfully"
-
 
 def verify_user_email(email: str) -> bool:
     email = normalize_email(email)
@@ -268,23 +252,21 @@ def verify_user_email(email: str) -> bool:
         return False
 
     users[email]["verified"] = True
+    users[email]["updated_at"] = datetime.now().isoformat()
     save_users(users)
 
     logger.info(f"Email verified for user: {email}")
     return True
-
 
 def is_user_verified(email: str) -> bool:
     email = normalize_email(email)
     users = load_users()
     return users.get(email, {}).get("verified", False)
 
-
 def get_user_role(email: str) -> Optional[str]:
     email = normalize_email(email)
     users = load_users()
     return users.get(email, {}).get("role")
-
 
 # ========================================================================
 # AUTHENTICATION
@@ -315,7 +297,6 @@ def authenticate_user(email: str, password: str) -> Tuple[bool, str]:
     logger.info(f"Successful login for user: {email}")
     return True, "Login successful"
 
-
 def change_password(email: str, old_password: str, new_password: str) -> Tuple[bool, str]:
     email = normalize_email(email)
     users = load_users()
@@ -329,11 +310,11 @@ def change_password(email: str, old_password: str, new_password: str) -> Tuple[b
         return False, "Old password is incorrect"
 
     user["password_hash"] = hash_password(new_password)
+    user["updated_at"] = datetime.now().isoformat()
     save_users(users)
 
     logger.info(f"Password changed for user: {email}")
     return True, "Password changed successfully"
-
 
 def reset_password(email: str, new_password: str) -> Tuple[bool, str]:
     email = normalize_email(email)
@@ -343,11 +324,11 @@ def reset_password(email: str, new_password: str) -> Tuple[bool, str]:
         return False, "User not found"
 
     users[email]["password_hash"] = hash_password(new_password)
+    users[email]["updated_at"] = datetime.now().isoformat()
     save_users(users)
 
     logger.info(f"Password reset for user: {email}")
     return True, "Password reset successfully"
-
 
 # ========================================================================
 # AUDIT LOGGING
