@@ -323,16 +323,16 @@ elif page == "scores_leaderboards":
 elif page == "scores_cards":
     run_scores_app("scorecards")
 
-#elif page == "handicap":
-#    username = st.sidebar.text_input("Membership Number")
-#    password = st.sidebar.text_input("Password", type="password")
+elif page == "handicap":
+    username = st.sidebar.text_input("Membership Number")
+    password = st.sidebar.text_input("Password", type="password")
 
-#    st.session_state.credentials["username"] = username
-#    st.session_state.credentials["password"] = password
-#    st.session_state.course_df = load_course_data()
+    st.session_state.credentials["username"] = username
+    st.session_state.credentials["password"] = password
+    st.session_state.course_df = load_course_data()
 
-#    mode = st.session_state.handicap_mode
-#    run_handicap_app(mode, st.session_state.credentials, st.session_state.course_df)
+    mode = st.session_state.handicap_mode
+    run_handicap_app(mode, st.session_state.credentials, st.session_state.course_df)
 
 elif page == "admin_users":
     show_admin_page(st.session_state.email)
