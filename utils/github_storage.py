@@ -44,17 +44,26 @@ def github_load_json(path):
     Loads a JSON file from GitHub.
     Returns (data, sha).
     If JSON is invalid, returns ({}, sha).
-    If file does not exist, returns (None, None).
+    If file does not exist (404), returns (None, None).
+    Any other error is raised.
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}?ref={GITHUB_BRANCH}"
 
     try:
         data = _github_request("GET", url)
-    except RuntimeError:
-        return None, None  # File does not exist
+    except RuntimeError as e:
+        msg = str(e)
+
+        # True "file not found"
+        if "404" in msg:
+            return None, None
+
+        # Any other error should NOT be treated as missing file
+        raise
 
     sha = data.get("sha")
 
+    # Decode JSON safely
     try:
         decoded = base64.b64decode(data["content"]).decode("utf-8")
         json_data = json.loads(decoded)
@@ -62,7 +71,6 @@ def github_load_json(path):
     except Exception:
         # File exists but JSON is corrupted — return empty dict but KEEP SHA
         return {}, sha
-
 
 # ------------------------------------------------------------
 # Save JSON file to GitHub
