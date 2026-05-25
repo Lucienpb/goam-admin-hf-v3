@@ -11,12 +11,17 @@ Allows:
 
 import streamlit as st
 from datetime import datetime
+
 from auth.auth import (
     load_users,
     save_users,
     create_user,
     reset_password
 )
+
+# NEW: GitHub sync
+from utils.github_storage import save_user_record
+
 
 # ========================================================================
 # ADMIN PAGE
@@ -50,6 +55,9 @@ def show_admin_page(admin_email: str):
             else:
                 ok, msg = create_user(email_norm, new_password, new_role)
                 if ok:
+                    # 🔥 Sync to GitHub
+                    save_user_record(email_norm, load_users()[email_norm])
+
                     st.success("User created successfully!")
                     st.rerun()
                 else:
@@ -73,12 +81,14 @@ def show_admin_page(admin_email: str):
 
             col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
 
+            # ------------------ USER INFO ------------------
             with col1:
                 st.write(f"**Role:** {user.get('role', 'member').capitalize()}")
                 st.write(f"**Verified:** {'Yes' if user.get('verified') else 'No'}")
                 st.write(f"**Created:** {user.get('created_at', 'N/A')}")
                 st.write(f"**Updated:** {user.get('updated_at', 'N/A')}")
 
+            # ------------------ ROLE UPDATE ------------------
             with col2:
                 new_role = st.selectbox(
                     f"Role for {email}",
@@ -91,9 +101,14 @@ def show_admin_page(admin_email: str):
                     user["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     users[email] = user
                     save_users(users)
+
+                    # 🔥 Sync to GitHub
+                    save_user_record(email, user)
+
                     st.success("Role updated")
                     st.rerun()
 
+            # ------------------ VERIFY + RESET PASSWORD ------------------
             with col3:
                 if not user.get("verified"):
                     if st.button(f"Verify {email}"):
@@ -101,6 +116,10 @@ def show_admin_page(admin_email: str):
                         user["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         users[email] = user
                         save_users(users)
+
+                        # 🔥 Sync to GitHub
+                        save_user_record(email, user)
+
                         st.success("User verified")
                         st.rerun()
 
@@ -118,17 +137,27 @@ def show_admin_page(admin_email: str):
                             user["updated_at"] = datetime.now().isoformat()
                             users[email] = user
                             save_users(users)
+
+                            # 🔥 Sync to GitHub
+                            save_user_record(email, user)
+
                             st.success("Password updated")
                             st.rerun()
                         else:
                             st.error(msg)
 
+            # ------------------ DELETE USER ------------------
             with col4:
                 if email != admin_email:
                     if st.button(f"Delete {email}"):
                         del users[email]
                         save_users(users)
+
+                        # 🔥 Sync delete to GitHub
+                        save_user_record(email, None)
+
                         st.warning(f"User {email} deleted")
                         st.rerun()
 
     st.markdown("---")
+
