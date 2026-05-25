@@ -78,8 +78,8 @@ def convert_course_excel_to_json(df: pd.DataFrame):
 
 def full_load_course_data(df: pd.DataFrame):
     data = convert_course_excel_to_json(df)
-    github_save_json("data/course_data.json", data)
-
+    _, sha = github_load_json("data/course_data.json")
+    github_save_json("data/course_data.json", data, sha=sha)
 
 def delta_load_course_data(df: pd.DataFrame):
     existing, sha = github_load_json("data/course_data.json")
@@ -96,7 +96,6 @@ def delta_load_course_data(df: pd.DataFrame):
             existing[course]["tees"].update(data["tees"])
 
     github_save_json("data/course_data.json", existing, sha=sha)
-
 
 # -------------------------------------------------------------------
 # PLAYERS SECTION
@@ -140,8 +139,8 @@ def convert_players_excel_to_json(df):
 
 def full_load_players(df: pd.DataFrame):
     data = convert_players_excel_to_json(df)
-    github_save_json("data/players.json", data)
-
+    _, sha = github_load_json("data/players.json")
+    github_save_json("data/players.json", data, sha=sha)
 
 def delta_load_players(df: pd.DataFrame):
     existing, sha = github_load_json("data/players.json")
@@ -157,7 +156,6 @@ def delta_load_players(df: pd.DataFrame):
 
     merged = list(existing_map.values())
     github_save_json("data/players.json", merged, sha=sha)
-
 
 # -------------------------------------------------------------------
 # PAIRINGS SECTION
@@ -215,8 +213,8 @@ def convert_pairings_excel_to_json(df: pd.DataFrame):
 
 def full_load_pairings(df: pd.DataFrame):
     month_key, data = convert_pairings_excel_to_json(df)
-    github_save_json("data/pairings.json", {month_key: data})
-
+    _, sha = github_load_json("data/pairings.json")
+    github_save_json("data/pairings.json", {month_key: data}, sha=sha)
 
 def delta_load_pairings(df: pd.DataFrame):
     existing, sha = github_load_json("data/pairings.json")
@@ -227,7 +225,6 @@ def delta_load_pairings(df: pd.DataFrame):
 
     existing[month_key] = data
     github_save_json("data/pairings.json", existing, sha=sha)
-
 
 # -------------------------------------------------------------------
 # GOAM SCORES SECTION
@@ -362,7 +359,9 @@ def convert_goam_scores_workbook_to_json(xls: dict):
 
 def full_load_goam_scores(xls: dict):
     data = convert_goam_scores_workbook_to_json(xls)
-    github_save_json("data/goam_scores.json", data)
+    _, sha = github_load_json("data/goam_scores.json")
+    github_save_json("data/goam_scores.json", data, sha=sha)
+
 
 
 def delta_load_goam_scores(xls: dict):
@@ -376,7 +375,6 @@ def delta_load_goam_scores(xls: dict):
         existing[month] = data
 
     github_save_json("data/goam_scores.json", existing, sha=sha)
-
 
 # -------------------------------------------------------------------
 # MAIN PAGE
