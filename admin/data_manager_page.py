@@ -1,17 +1,9 @@
 #######################################
 # Data Manager Page (Admin Only)
 #######################################
-# Allows admins to upload Excel files to update:
-# - Course information (course_data.json)
-# - Player information (players.json)
-# - Pairings information (pairings.json)
-# - GOAM Scores (goam_scores.json) with derived fields
-# Also allows downloading all JSON data files
-#######################################
 
 import streamlit as st
 import pandas as pd
-import os
 
 from utils.github_storage import github_load_json, github_save_json
 
@@ -90,7 +82,10 @@ def full_load_course_data(df: pd.DataFrame):
 
 
 def delta_load_course_data(df: pd.DataFrame):
-    existing = github_load_json("data/course_data.json") or {}
+    existing, sha = github_load_json("data/course_data.json")
+    if existing is None:
+        existing = {}
+
     incoming = convert_course_excel_to_json(df)
 
     for course, data in incoming.items():
@@ -100,7 +95,7 @@ def delta_load_course_data(df: pd.DataFrame):
             existing[course].setdefault("tees", {})
             existing[course]["tees"].update(data["tees"])
 
-    github_save_json("data/course_data.json", existing)
+    github_save_json("data/course_data.json", existing, sha=sha)
 
 
 # -------------------------------------------------------------------
@@ -145,13 +140,14 @@ def convert_players_excel_to_json(df):
 
 def full_load_players(df: pd.DataFrame):
     data = convert_players_excel_to_json(df)
-
-    print(df)
     github_save_json("data/players.json", data)
 
 
 def delta_load_players(df: pd.DataFrame):
-    existing = github_load_json("data/players.json") or []
+    existing, sha = github_load_json("data/players.json")
+    if existing is None:
+        existing = []
+
     incoming = convert_players_excel_to_json(df)
 
     existing_map = {p["membership"]: p for p in existing}
@@ -160,7 +156,7 @@ def delta_load_players(df: pd.DataFrame):
         existing_map[p["membership"]] = p
 
     merged = list(existing_map.values())
-    github_save_json("data/players.json", merged)
+    github_save_json("data/players.json", merged, sha=sha)
 
 
 # -------------------------------------------------------------------
@@ -223,11 +219,14 @@ def full_load_pairings(df: pd.DataFrame):
 
 
 def delta_load_pairings(df: pd.DataFrame):
-    existing = github_load_json("data/pairings.json") or {}
+    existing, sha = github_load_json("data/pairings.json")
+    if existing is None:
+        existing = {}
+
     month_key, data = convert_pairings_excel_to_json(df)
 
     existing[month_key] = data
-    github_save_json("data/pairings.json", existing)
+    github_save_json("data/pairings.json", existing, sha=sha)
 
 
 # -------------------------------------------------------------------
@@ -367,13 +366,16 @@ def full_load_goam_scores(xls: dict):
 
 
 def delta_load_goam_scores(xls: dict):
-    existing = github_load_json("data/goam_scores.json") or {}
+    existing, sha = github_load_json("data/goam_scores.json")
+    if existing is None:
+        existing = {}
+
     incoming = convert_goam_scores_workbook_to_json(xls)
 
     for month, data in incoming.items():
         existing[month] = data
 
-    github_save_json("data/goam_scores.json", existing)
+    github_save_json("data/goam_scores.json", existing, sha=sha)
 
 
 # -------------------------------------------------------------------
@@ -399,11 +401,11 @@ def show_data_manager_page():
                 else:
                     delta_load_course_data(df)
                     st.success("Course data merged (delta load).")
-                # NEW: Refresh session_state for course_data
-                from utils.github_storage import github_load_json
+
                 data, sha = github_load_json("data/course_data.json")
                 st.session_state["course_data"] = data
-                st.session_state["course_data_sha"] = sha    
+                st.session_state["course_data_sha"] = sha
+
             except Exception as e:
                 st.error(f"Error processing course data: {e}")
 
@@ -426,11 +428,11 @@ def show_data_manager_page():
                 else:
                     delta_load_players(df)
                     st.success("Players merged (delta load).")
-                # NEW: Refresh session_state for players
+
                 data, sha = github_load_json("data/players.json")
                 st.session_state["players"] = data
                 st.session_state["players_sha"] = sha
-    
+
             except Exception as e:
                 st.error(f"Error processing player data: {e}")
 
@@ -453,10 +455,11 @@ def show_data_manager_page():
                 else:
                     delta_load_pairings(df)
                     st.success("Pairings merged (delta load).")
-                # NEW: Refresh session_state for pairings
+
                 data, sha = github_load_json("data/pairings.json")
                 st.session_state["pairings"] = data
-                st.session_state["pairings_sha"] = sha    
+                st.session_state["pairings_sha"] = sha
+
             except Exception as e:
                 st.error(f"Error processing pairing data: {e}")
 
@@ -483,7 +486,7 @@ def show_data_manager_page():
                 else:
                     delta_load_goam_scores(xls)
                     st.success("GOAM scores merged (delta load).")
-                # NEW: Refresh session_state for goam_scores
+
                 data, sha = github_load_json("data/goam_scores.json")
                 st.session_state["goam_scores"] = data
                 st.session_state["goam_scores_sha"] = sha
@@ -505,7 +508,7 @@ def show_data_manager_page():
 
     for label, path in data_files.items():
         try:
-            data = github_load_json(path)
+            data, sha = github_load_json(path)
 
             if isinstance(data, dict):
                 df = pd.json_normalize(data, sep="_")
