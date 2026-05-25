@@ -240,7 +240,8 @@ if st.sidebar.button("👤 My Profile"):
 
 st.sidebar.markdown("---")
 
-role = get_user_role(st.session_state.email)
+#role = get_user_role(st.session_state.email)
+role = st.session_state.get("role", "member")   # default to member if missing
 
 # SCORES GROUP
 with st.sidebar.expander("📘 Scores", expanded=False):
@@ -255,6 +256,7 @@ with st.sidebar.expander("🏌️ Handicap", expanded=False):
     if not scraper_awake:
         st.button("Single Player", disabled=True)
         st.button("Batch", disabled=True)
+        
     else:
         if st.button("Single Player"):
             st.session_state.page = "handicap"
