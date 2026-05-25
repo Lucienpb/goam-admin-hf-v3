@@ -228,7 +228,7 @@ def show_profile_page(email: str):
     
         try:
             # Save to GitHub user.json
-            save_user_record(user)
+            save_user_record(email_norm, user)
             st.session_state["users"][email_norm] = user
         except Exception as e:
             st.error(f"Failed to sync profile to GitHub: {e}")
@@ -274,7 +274,7 @@ def show_profile_page(email: str):
                 updated_user = updated_users[email_norm]
         
                 # Save to GitHub user.json
-                save_user_record(updated_user)
+                save_user_record(email_norm,updated_user)
                 st.session_state["users"][email_norm] = updated_user
         
             except Exception as e:
