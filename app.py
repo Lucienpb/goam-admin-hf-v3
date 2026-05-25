@@ -217,20 +217,17 @@ status_placeholder = st.empty()
 scraper_awake = scraper_is_awake(SCRAPER_URL)
 
 with status_placeholder.container():
-    col1, col2 = st.columns([0.06, 0.94])
+    col1 = st.columns([0.06])
 
     if scraper_awake:
         col1.markdown("🟢", unsafe_allow_html=True)
-        col2.success("Handicap Scraper is online and ready.")
     else:
         col1.markdown("🔴", unsafe_allow_html=True)
-        col2.warning("Handicap Scraper is offline or waking up. Single Player and Batch are disabled.")
-
+  
 # Auto-refresh every 10 seconds, up to 6 times
 if not scraper_awake and st.session_state.scraper_refresh_count < 6:
     st.session_state.scraper_refresh_count += 1
     st.experimental_rerun(delay=10)
-
 
 # ========================================================================
 # SIDEBAR NAVIGATION
