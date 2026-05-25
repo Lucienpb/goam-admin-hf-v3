@@ -148,12 +148,12 @@ def save_json_with_sha(path, new_data):
 # Save a single user's updated record
 # ------------------------------------------------------------
 def save_user_record(username, updated_record):
-    path = "data/users.json"
+    path = "data/user.json"   # FIXED: save to user.json
 
     users, sha = github_load_json(path)
 
     if users is None:
-        raise RuntimeError("users.json could not be loaded from GitHub")
+        users = {}
 
     if not isinstance(users, dict):
         users = {}
