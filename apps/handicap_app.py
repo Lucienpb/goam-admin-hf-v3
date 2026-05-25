@@ -1,4 +1,4 @@
-#-------------------------------------------------"""
+#-------------------------------------------------
 # Handicap Scraper App (Mode-based version)
 #   - Single Player Lookup
 #   - Batch Processing  (Excel upload + download)
@@ -28,36 +28,83 @@ def safe_round(value):
 
 
 # ============================================================
+# SESSION LOGIN STATE
+# ============================================================
+if "hcp_logged_in" not in st.session_state:
+    st.session_state["hcp_logged_in"] = False
+    st.session_state["hcp_username"] = None
+    st.session_state["hcp_password"] = None
+
+
+# ============================================================
 # MAIN ENTRY POINT (called from app.py)
 # ============================================================
-def run(mode, credentials, course_df):
+def run(mode, credentials_unused, course_df):
 
     if mode == "single":
-        show_single_player(credentials, course_df)
+        show_single_player(course_df)
 
     elif mode == "batch":
-        show_batch_processing(credentials, course_df)
+        show_batch_processing(course_df)
 
     elif mode == "calculator":
         show_handicap_calculator(course_df)
 
 
 # ============================================================
+# LOGIN BLOCK (shared by single + batch)
+# ============================================================
+def ensure_hcp_login(key_prefix="single"):
+    """
+    Shows login UI only if not logged in.
+    Returns (username, password) if logged in, else None.
+    """
+
+    if not st.session_state["hcp_logged_in"]:
+        st.subheader("🔐 Login to Handicaps.co.za")
+
+        username = st.text_input("HNA Username", key=f"{key_prefix}_user")
+        password = st.text_input("HNA Password", type="password", key=f"{key_prefix}_pass")
+
+        if st.button("Login", key=f"{key_prefix}_login_btn"):
+            if not username or not password:
+                st.error("Please enter both username and password.")
+                return None
+
+            # Test login with harmless dummy member
+            try:
+                fetch_handicap(username, password, "000000")
+                st.session_state["hcp_logged_in"] = True
+                st.session_state["hcp_username"] = username
+                st.session_state["hcp_password"] = password
+                st.success("Logged in successfully!")
+            except Exception:
+                st.error("Login failed. Please check your credentials.")
+                return None
+
+    # Already logged in
+    return (
+        st.session_state["hcp_username"],
+        st.session_state["hcp_password"],
+    )
+
+
+# ============================================================
 # SINGLE PLAYER SCRAPER
 # ============================================================
-def show_single_player(credentials, course_df):
+def show_single_player(course_df):
     st.header("🏌️ Single Player Lookup")
 
-    username = credentials.get("username")
-    password = credentials.get("password")
-
-    if not username or not password:
-        st.warning("Please enter your Handicaps.co.za login details in the sidebar.")
+    # Login first
+    creds = ensure_hcp_login("single")
+    if not creds:
         return
+
+    username, password = creds
 
     course, tee, tee_data = render_course_tee_selector(course_df, "single")
 
-    member = st.text_input("Membership Number", key="single_member")
+    member = st.text_input("HNA Membership No.", key="single_member")
 
     if st.button("Search Player"):
         if not member.strip():
@@ -74,8 +121,6 @@ def show_single_player(credentials, course_df):
             except Exception as e:
                 st.error(f"Error calling Handicap API: {e}")
                 return
-
-#        st.write("DEBUG single:", {"member": member, "name": name, "index": index})
 
         if not name:
             st.error("Player not found.")
@@ -103,15 +148,15 @@ def show_single_player(credentials, course_df):
 # ============================================================
 # BATCH PROCESSING
 # ============================================================
-def show_batch_processing(credentials, course_df):
+def show_batch_processing(course_df):
     st.header("📦 Batch Processing")
 
-    username = credentials.get("username")
-    password = credentials.get("password")
-
-    if not username or not password:
-        st.warning("Please enter your Handicaps.co.za login details in the sidebar.")
+    # Login first
+    creds = ensure_hcp_login("batch")
+    if not creds:
         return
+
+    username, password = creds
 
     course, tee, tee_data = render_course_tee_selector(course_df, "batch")
 
