@@ -36,13 +36,15 @@ def _github_request(method, url, **kwargs):
 
 
 # ------------------------------------------------------------
-# Load JSON file from GitHub (ORIGINAL FUNCTION)
-# UPDATED: now returns (data, sha)
+# Load JSON file from GitHub
+# ALWAYS returns SHA, even if JSON is invalid
 # ------------------------------------------------------------
 def github_load_json(path):
     """
     Loads a JSON file from GitHub.
-    Returns (data, sha) or (None, None) if file does not exist.
+    Returns (data, sha).
+    If JSON is invalid, returns ({}, sha).
+    If file does not exist, returns (None, None).
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}?ref={GITHUB_BRANCH}"
 
@@ -53,30 +55,26 @@ def github_load_json(path):
 
     sha = data.get("sha")
 
-    # Decode file content
     try:
         decoded = base64.b64decode(data["content"]).decode("utf-8")
         json_data = json.loads(decoded)
+        return json_data, sha
     except Exception:
-        # File exists but JSON is invalid — return empty dict but keep SHA
+        # File exists but JSON is corrupted — return empty dict but KEEP SHA
         return {}, sha
-
-    return json_data, sha
 
 
 # ------------------------------------------------------------
-# Save JSON file to GitHub (ORIGINAL FUNCTION)
-# UPDATED: now accepts optional sha + message
+# Save JSON file to GitHub
+# Automatically handles create vs update
 # ------------------------------------------------------------
 def github_save_json(path, obj, sha=None, message=None):
     """
     Saves a JSON file to GitHub.
-    Automatically handles SHA for updates.
+    If sha is provided → update.
+    If sha is None → create.
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}"
-
-    print("DEBUG URL:", url)
-    print("DEBUG REPO:", GITHUB_REPO)
 
     content_str = json.dumps(obj, indent=2)
     encoded = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
@@ -94,22 +92,17 @@ def github_save_json(path, obj, sha=None, message=None):
         payload["sha"] = sha
 
     _github_request("PUT", url, json=payload)
-
     return True
 
 
 # ============================================================
-# NEW SECTION — REQUIRED FOR YOUR APP ARCHITECTURE
+# HIGH-LEVEL APP HELPERS
 # ============================================================
 
 # ------------------------------------------------------------
-# NEW: Load ALL app data after login
+# Load ALL app data after login
 # ------------------------------------------------------------
 def load_all_app_data():
-    """
-    Loads all required JSON files after login.
-    Returns a dict: { filename: {data, sha} }
-    """
     files = [
         "data/course_data.json",
         "data/goam_scores.json",
@@ -128,13 +121,9 @@ def load_all_app_data():
 
 
 # ------------------------------------------------------------
-# NEW: Save JSON from Data Manager (Excel upload)
+# Save JSON from Data Manager (Excel upload)
 # ------------------------------------------------------------
 def save_json_with_sha(path, new_data):
-    """
-    Used by Data Manager after Excel upload.
-    Loads SHA, overwrites file, pushes to GitHub.
-    """
     _, sha = github_load_json(path)
 
     github_save_json(
@@ -148,7 +137,7 @@ def save_json_with_sha(path, new_data):
 
 
 # ------------------------------------------------------------
-# NEW: Save a single user's updated record
+# Save a single user's updated record
 # ------------------------------------------------------------
 def save_user_record(username, updated_record):
     path = "data/users.json"
@@ -171,4 +160,3 @@ def save_user_record(username, updated_record):
     )
 
     return True
-
