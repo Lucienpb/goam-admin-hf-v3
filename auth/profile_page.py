@@ -45,6 +45,21 @@ def _load_user_stats(email: str):
     if not player_name:
         return None
 
+    # Auto-detect course column
+    course_col = None
+    for col in season_df.columns:
+        if col.strip().lower() == "course":
+            course_col = col
+            break
+
+    if not course_col:
+        return None
+
+    # Exclude Services (June)
+    season_df = season_df[
+        season_df[course_col].astype(str).str.strip().str.lower() != "services"
+    ]
+
     # All rounds for this player
     user_rounds = season_df[season_df["Name"].str.lower() == player_name.lower()]
     if user_rounds.empty:
@@ -55,30 +70,16 @@ def _load_user_stats(email: str):
     avg_strokes = round(user_rounds["Strokes"].mean(), 0)
     games_played = len(user_rounds)
 
-    # Course → Month mapping (Services = future)
-    course_month_map = {
-        "Akasia": 2,
-        "PGC": 3,
-        "Kyalami": 4,
-        "Copperleaf": 5,
-        "Services": 6,  # future — must not count
-    }
-
-    # Remove future course
-    season_df = season_df[
-    season_df["Course"].astype(str).str.strip().str.lower() != "services"
-    ]
-
     # Games won (highest IPS per course)
     games_won = 0
-    for course, group in season_df.groupby("Course"):
+    for course, group in season_df.groupby(course_col):
         winner = group.loc[group["IPS"].idxmax()]
         if winner["Name"].strip().lower() == player_name.strip().lower():
             games_won += 1
 
     # OX Nau count (lowest IPS per course)
     ox_count = 0
-    for course, group in season_df.groupby("Course"):
+    for course, group in season_df.groupby(course_col):
         ox = group.loc[group["IPS"].idxmin()]
         if ox["Name"].strip().lower() == player_name.strip().lower():
             ox_count += 1
@@ -153,8 +154,6 @@ def show_profile_page(email: str):
     if stats:
         st.markdown(
             f"""
-
-
 🏌️ **Membership:** {stats['membership']}  
 
 📊 **IPS: Avg.** {stats['avg_ips']}  
