@@ -156,7 +156,7 @@ def show_profile_page(email: str):
             f"""
 🏌️ **Membership:** {stats['membership']}  
 📏 **Handicap Index Cap:** {stats['handicap_index']}
-   **LIV Team:** {stats['team']}
+🏌️‍♂️ **LIV Team:** {stats['team']}
 
 📊 **IPS: Avg.** {stats['avg_ips']}  
 📉 **Strokes: Avg.** {stats['avg_strokes']}  
@@ -222,17 +222,18 @@ def show_profile_page(email: str):
         user["name"] = name
         user["phone"] = phone
         user["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+    
         users[email_norm] = user
         save_users(users)
-
+    
         try:
-            save_user_record(email_norm, user)
+            # Save to GitHub user.json
+            save_user_record(user)
             st.session_state["users"][email_norm] = user
         except Exception as e:
             st.error(f"Failed to sync profile to GitHub: {e}")
             return
-
+    
         st.success("Profile updated successfully!")
         st.stop()
 
@@ -271,14 +272,15 @@ def show_profile_page(email: str):
             try:
                 updated_users = load_users()
                 updated_user = updated_users[email_norm]
-
-                save_user_record(email_norm, updated_user)
+        
+                # Save to GitHub user.json
+                save_user_record(updated_user)
                 st.session_state["users"][email_norm] = updated_user
-
+        
             except Exception as e:
                 st.error(f"Password updated locally but failed to sync to GitHub: {e}")
                 return
-
+        
             st.success(msg)
             st.stop()
         else:
