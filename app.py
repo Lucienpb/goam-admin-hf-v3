@@ -242,6 +242,13 @@ st.sidebar.markdown("---")
 
 role = get_user_role(st.session_state.email)
 
+# SCORES GROUP
+with st.sidebar.expander("📘 Scores", expanded=False):
+    if st.button("Leaderboards"):
+        st.session_state.page = "scores_leaderboards"
+    if st.button("Scorecards"):
+        st.session_state.page = "scores_cards"
+
 # HANDICAP GROUP
 with st.sidebar.expander("🏌️ Handicap", expanded=False):
 
@@ -268,20 +275,10 @@ with st.sidebar.expander("⛳ Pairings", expanded=False):
     if st.button("4‑Ball Generation"):
         st.session_state.page = "pairings_gen"
 
-
-# SCORES GROUP
-with st.sidebar.expander("📘 Scores", expanded=False):
-    if st.button("Leaderboards"):
-        st.session_state.page = "scores_leaderboards"
-    if st.button("Scorecards"):
-        st.session_state.page = "scores_cards"
-
-
 # DASHBOARD GROUP
-with st.sidebar.expander("📊 Season Dashboard", expanded=False):
-    if st.button("2026 Dashboard"):
-        st.session_state.page = "dashboard"
-
+#with st.sidebar.expander("📊 Season Dashboard", expanded=False):
+#    if st.button("2026 Dashboard"):
+#        st.session_state.page = "dashboard"
 
 # ADMIN GROUP
 with st.sidebar.expander("🛠️ Admin", expanded=False):
