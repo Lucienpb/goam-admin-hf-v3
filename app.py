@@ -124,6 +124,10 @@ init_session()
 if "github_synced" not in st.session_state:
     sync_all_from_github()        # pull latest data from GitHub
     migrate_users_to_lowercase()  # normalize all user emails to lowercase
+    # 🔥 DEBUG: wys onmiddellik wat in user.json gelaai is
+    users = load_users()
+    import streamlit as st
+    st.write("DEBUG: Current users dict from user.json:", users)
     st.session_state.github_synced = True
 
 # ========================================================================
