@@ -15,7 +15,7 @@ from auth.auth import (
     verify_user_email,
     reset_password,
     get_user_role,
-    migrate_users_to_lowercase   # <-- NEW import
+    migrate_users_to_lowercase,   # <-- NEW import
     load_users
 )
 from auth.login_page import show_login_page
