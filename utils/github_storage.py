@@ -168,3 +168,23 @@ def save_user_record(username, updated_record):
     )
 
     return True
+
+# ------------------------------------------------------------
+# Sync ALL app data from GitHub into local files
+# ------------------------------------------------------------
+def sync_all_from_github():
+    files = [
+        "data/users.json",
+        "data/course_data.json",
+        "data/goam_scores.json",
+        "data/goam_rounds.json",
+        "data/pairings.json",
+        "data/players.json",
+    ]
+
+    for path in files:
+        data, sha = github_load_json(path)
+        if data is not None:
+            # overwrite local file with latest GitHub data
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2)
