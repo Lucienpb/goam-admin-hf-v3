@@ -19,7 +19,7 @@ import bcrypt
 # CONFIGURATION
 # ========================================================================
 BASE_DIR = Path(__file__).parent.parent
-USERS_FILE = BASE_DIR / "data" / "users.json"
+USERS_FILE = BASE_DIR / "data" / "user.json"
 AUDIT_LOG_FILE = BASE_DIR / "logs" / "auth_audit.log"
 TOKEN_STORE_FILE = BASE_DIR / "data" / "tokens.json"
 
