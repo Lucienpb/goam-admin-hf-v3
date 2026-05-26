@@ -31,7 +31,6 @@ from admin.data_manager_page import show_data_manager_page
 
 SESSION_TIMEOUT = 3600  # 1 hour
 
-
 # ============================================================
 # SCRAPER STATUS CHECK
 # ============================================================
@@ -109,6 +108,10 @@ def init_session():
         "page": "profile",
         "handicap_mode": "single",
         "scraper_refresh_count": 0,
+        # 🔥 REQUIRED FOR HANDICAP LOGIN
+        "hcp_logged_in": False,
+        "hcp_username": None,
+        "hcp_password": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
