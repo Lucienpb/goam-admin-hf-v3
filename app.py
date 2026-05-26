@@ -16,6 +16,7 @@ from auth.auth import (
     reset_password,
     get_user_role,
     migrate_users_to_lowercase   # <-- NEW import
+    load_users
 )
 from auth.login_page import show_login_page
 from auth.profile_page import show_profile_page
@@ -29,7 +30,6 @@ from apps.goam_dashboard import run as run_goam_dashboard
 from utils.handicap_calculator import load_course_data
 from admin.data_manager_page import show_data_manager_page
 from utils.github_storage import sync_all_from_github   # <-- already imported
-from auth.auth import migrate_users_to_lowercase   # <-- extra import
 
 SESSION_TIMEOUT = 3600  # 1 hour
 
