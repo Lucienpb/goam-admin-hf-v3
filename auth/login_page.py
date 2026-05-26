@@ -104,6 +104,7 @@ def show_login_page():
 
     st.info(f"DEBUG: Using users.json at: {Path(USERS_FILE).resolve()}")
     users = load_users()
+    st.write("LOGIN DEBUG users dict:", users)
 
     # Normalize email for lookup
     email_norm = email.strip().lower()
