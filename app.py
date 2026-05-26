@@ -124,6 +124,9 @@ init_session()
 if "github_synced" not in st.session_state:
     sync_all_from_github()
     migrate_users_to_lowercase()   # <-- extra line
+     # DEBUG: show immediately what was loaded from user.json
+    users = load_users()
+    st.write("DEBUG: Current users dict from user.json:", users)   
     st.session_state.github_synced = True
 
 # ========================================================================
