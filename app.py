@@ -1,5 +1,5 @@
 #-------------------------------
-# GOAM ADMIN APP (Final Clean Version)
+# GOAM ADMIN APP (Final Clean Version, Patched)
 #-------------------------------
 import sys
 import os
@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import streamlit as st
 from datetime import datetime, timedelta
-import requests   # <-- Needed for scraper check
+import requests
 
 # AUTH MODULES
 from auth.auth import (
@@ -106,10 +106,9 @@ def init_session():
         "login_time": None,
         "last_activity": datetime.now(),
         "course_df": None,
-        "credentials": {"username": None, "password": None},
         "page": "profile",
         "handicap_mode": "single",
-        "scraper_refresh_count": 0,   # <-- NEW
+        "scraper_refresh_count": 0,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -223,11 +222,12 @@ with status_placeholder.container():
         col1.markdown("🟢", unsafe_allow_html=True)
     else:
         col1.markdown("🔴", unsafe_allow_html=True)
-  
+
 # Auto-refresh every 10 seconds, up to 6 times
 if not scraper_awake and st.session_state.scraper_refresh_count < 6:
     st.session_state.scraper_refresh_count += 1
     st.experimental_rerun(delay=10)
+
 
 # ========================================================================
 # SIDEBAR NAVIGATION
@@ -240,8 +240,7 @@ if st.sidebar.button("👤 My Profile"):
 
 st.sidebar.markdown("---")
 
-#role = get_user_role(st.session_state.email)
-role = st.session_state.get("role", "member")   # default to member if missing
+role = st.session_state.get("role", "member")
 
 # SCORES GROUP
 with st.sidebar.expander("📘 Scores", expanded=False):
@@ -256,7 +255,7 @@ with st.sidebar.expander("🏌️ Handicap", expanded=False):
     if not scraper_awake:
         st.button("Single Player", disabled=True)
         st.button("Batch", disabled=True)
-        
+
     else:
         if st.button("Single Player"):
             st.session_state.page = "handicap"
@@ -277,10 +276,6 @@ with st.sidebar.expander("⛳ Pairings", expanded=False):
     if st.button("4‑Ball Generation"):
         st.session_state.page = "pairings_gen"
 
-# DASHBOARD GROUP
-#with st.sidebar.expander("📊 Season Dashboard", expanded=False):
-#    if st.button("2026 Dashboard"):
-#        st.session_state.page = "dashboard"
 
 # ADMIN GROUP
 with st.sidebar.expander("🛠️ Admin", expanded=False):
@@ -324,15 +319,10 @@ elif page == "scores_cards":
     run_scores_app("scorecards")
 
 elif page == "handicap":
-    username = st.sidebar.text_input("Membership Number")
-    password = st.sidebar.text_input("Password", type="password")
-
-    st.session_state.credentials["username"] = username
-    st.session_state.credentials["password"] = password
+    # NEW: No sidebar login — login handled inside handicap_app.py
     st.session_state.course_df = load_course_data()
-
     mode = st.session_state.handicap_mode
-    run_handicap_app(mode, st.session_state.credentials, st.session_state.course_df)
+    run_handicap_app(mode, None, st.session_state.course_df)
 
 elif page == "admin_users":
     show_admin_page(st.session_state.email)
