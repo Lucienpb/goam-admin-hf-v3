@@ -14,7 +14,8 @@ from auth.auth import (
     verify_token,
     verify_user_email,
     reset_password,
-    get_user_role
+    get_user_role,
+    migrate_users_to_lowercase   # <-- NEW import
 )
 from auth.login_page import show_login_page
 from auth.profile_page import show_profile_page
@@ -27,7 +28,7 @@ from apps.scores_app import run_scores_app
 from apps.goam_dashboard import run as run_goam_dashboard
 from utils.handicap_calculator import load_course_data
 from admin.data_manager_page import show_data_manager_page
-
+from utils.github_storage import sync_all_from_github   # <-- already imported
 
 SESSION_TIMEOUT = 3600  # 1 hour
 
@@ -41,7 +42,6 @@ def scraper_is_awake(base_url: str) -> bool:
     except:
         return False
 
-
 # ========================================================================
 # PAGE CONFIG
 # ========================================================================
@@ -51,7 +51,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 
 # ========================================================================
 # THEME
@@ -93,7 +92,6 @@ def inject_theme():
 
 inject_theme()
 
-
 # ========================================================================
 # SESSION INITIALIZATION
 # ========================================================================
@@ -119,14 +117,13 @@ def init_session():
 
 init_session()
 
-from utils.github_storage import sync_all_from_github
-
-# Load GitHub data once per session
+# ========================================================================
+# GITHUB SYNC + USER MIGRATION
+# ========================================================================
 if "github_synced" not in st.session_state:
-    sync_all_from_github()
+    sync_all_from_github()        # pull latest data from GitHub
+    migrate_users_to_lowercase()  # normalize all user emails to lowercase
     st.session_state.github_synced = True
-
-
 
 # ========================================================================
 # SESSION TIMEOUT
@@ -156,7 +153,6 @@ def check_timeout():
 
 check_timeout()
 
-
 # ========================================================================
 # EMAIL VERIFICATION
 # ========================================================================
@@ -171,7 +167,6 @@ def handle_email_verification():
             st.error("Invalid or expired verification link.")
 
 handle_email_verification()
-
 
 # ========================================================================
 # PASSWORD RESET
@@ -208,7 +203,6 @@ def handle_password_reset():
 
 handle_password_reset()
 
-
 # ========================================================================
 # LOGIN GATE
 # ========================================================================
@@ -216,19 +210,16 @@ if not st.session_state.authenticated:
     show_login_page()
     st.stop()
 
-
 # ========================================================================
 # SCRAPER CHECK (AUTO REFRESH)
 # ========================================================================
 SCRAPER_URL = "https://lucienpb-handicap-scraper.hf.space"
 
 status_placeholder = st.empty()
-
 scraper_awake = scraper_is_awake(SCRAPER_URL)
 
 with status_placeholder.container():
     col1, = st.columns([0.06])
-
     if scraper_awake:
         col1.markdown("🟢", unsafe_allow_html=True)
     else:
@@ -238,7 +229,6 @@ with status_placeholder.container():
 if not scraper_awake and st.session_state.scraper_refresh_count < 6:
     st.session_state.scraper_refresh_count += 1
     st.experimental_rerun(delay=10)
-
 
 # ========================================================================
 # SIDEBAR NAVIGATION
@@ -262,11 +252,9 @@ with st.sidebar.expander("📘 Scores", expanded=False):
 
 # HANDICAP GROUP
 with st.sidebar.expander("🏌️ Handicap", expanded=False):
-
     if not scraper_awake:
         st.button("Single Player", disabled=True)
         st.button("Batch", disabled=True)
-
     else:
         if st.button("Single Player"):
             st.session_state.page = "handicap"
@@ -274,11 +262,9 @@ with st.sidebar.expander("🏌️ Handicap", expanded=False):
         if st.button("Batch"):
             st.session_state.page = "handicap"
             st.session_state.handicap_mode = "batch"
-
     if st.button("Calculator"):
         st.session_state.page = "handicap"
         st.session_state.handicap_mode = "calculator"
-
 
 # PAIRINGS GROUP
 with st.sidebar.expander("⛳ Pairings", expanded=False):
@@ -287,14 +273,12 @@ with st.sidebar.expander("⛳ Pairings", expanded=False):
     if st.button("4‑Ball Generation"):
         st.session_state.page = "pairings_gen"
 
-
 # ADMIN GROUP
 with st.sidebar.expander("🛠️ Admin", expanded=False):
     if st.button("User Management"):
         st.session_state.page = "admin_users"
     if st.button("Data Manager"):
         st.session_state.page = "admin_data"
-
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Logout"):
@@ -305,7 +289,6 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state.last_activity = None
     st.rerun()
 
-
 # ========================================================================
 # PAGE ROUTING
 # ========================================================================
@@ -313,30 +296,13 @@ page = st.session_state.page
 
 if page == "profile":
     show_profile_page(st.session_state.email)
-
 elif page == "dashboard":
     run_goam_dashboard()
-
 elif page == "pairings_matrix":
     run_pairing_app("matrix")
-
 elif page == "pairings_gen":
     run_pairing_app("generator")
-
 elif page == "scores_leaderboards":
     run_scores_app("leaderboards")
-
 elif page == "scores_cards":
     run_scores_app("scorecards")
-
-elif page == "handicap":
-    # NEW: No sidebar login — login handled inside handicap_app.py
-    st.session_state.course_df = load_course_data()
-    mode = st.session_state.handicap_mode
-    run_handicap_app(mode, None, st.session_state.course_df)
-
-elif page == "admin_users":
-    show_admin_page(st.session_state.email)
-
-elif page == "admin_data":
-    show_data_manager_page()
