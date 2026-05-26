@@ -119,6 +119,14 @@ def init_session():
 
 init_session()
 
+from utils.github_storage import sync_all_from_github
+
+# Load GitHub data once per session
+if "github_synced" not in st.session_state:
+    sync_all_from_github()
+    st.session_state.github_synced = True
+
+
 
 # ========================================================================
 # SESSION TIMEOUT
