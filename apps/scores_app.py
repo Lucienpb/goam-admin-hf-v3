@@ -48,7 +48,18 @@ def _load_scores():
         season_rounds = GOAMCalculator.build_from_json(goam_scores)
 
         if not season_rounds.empty:
-            rounds.rounds = [season_rounds]
+            # Reset stored rounds
+            rounds.rounds = []
+            
+            # Feed GOAMRounds one round at a time
+            for rnd in season_rounds["Round"].unique():
+                df_round = season_rounds[season_rounds["Round"] == rnd]
+            
+                # Build leaderboard for THIS round only
+                round_leaderboard = GOAMCalculator.build_ips_leaderboard(df_round)
+            
+                # Store positions for this round
+                rounds.update_position_history(round_leaderboard)
         else:
             return None, None, "No GOAM scores found. Load data via Data Manager."
 
