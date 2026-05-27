@@ -109,14 +109,18 @@ def show_leaderboards():
             st.error("IPS column missing from IPS leaderboard.")
             return
 
-    # Update position history
+    # 🔥 HERE: calculate position change inside GOAMRounds
     rounds.update_position_history(ips_table)
 
     ips_table = ips_table.copy()
     if "Name" in ips_table.columns:
-        ips_table.insert(2, "Pos Change", ips_table["Name"].apply(
-            lambda name: _format_pos_change(rounds.get_position_change(name))
-        ))
+        ips_table.insert(
+            2,
+            "Pos Change",
+            ips_table["Name"].apply(
+                lambda name: _format_pos_change(rounds.get_position_change(name))
+            )
+        )
     else:
         ips_table.insert(2, "Pos Change", "–")
 
@@ -129,15 +133,12 @@ def show_leaderboards():
         index=0
     )
 
-    # Display leaderboard
     if leaderboard_choice == "IPS":
         st.subheader("🏆 IPS Leaderboard (Best 6 + Course Breakdown)")
         st.dataframe(ips_table, width="stretch")
-
     elif leaderboard_choice == "Strokes":
         st.subheader("⛳ Strokes Leaderboard (Best 6 Over Par)")
         st.dataframe(strokes_table, width="stretch")
-
     elif leaderboard_choice == "LIV":
         st.subheader("🏁 LIV Team Leaderboard (Top 3 IPS per Course)")
         st.dataframe(liv_table, width="stretch")
