@@ -207,6 +207,14 @@ def handle_password_reset():
 
 handle_password_reset()
 
+# GITHUB SYNC MUST RUN BEFORE LOGIN
+if "github_synced" not in st.session_state:
+    sync_all_from_github()
+    migrate_users_to_lowercase()
+    users = load_users()
+    st.write("DEBUG:", users)
+    st.session_state.github_synced = True
+
 # ========================================================================
 # LOGIN GATE
 # ========================================================================
