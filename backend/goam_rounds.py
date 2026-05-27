@@ -41,4 +41,9 @@ class GOAMRounds:
 
     def get_position_change(self, name):
         return self.position_change.get(name)
-
+        
+    def get_all_rounds(self):
+        """Return all stored rounds as a single DataFrame."""
+        if not self.rounds:
+            return pd.DataFrame()
+        return pd.concat(self.rounds, ignore_index=True)
