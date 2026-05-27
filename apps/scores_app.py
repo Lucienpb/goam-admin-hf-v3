@@ -47,8 +47,8 @@ def _load_scores():
         goam_scores = GOAMLoader.load_json_scores("data/goam_scores.json")
         season_rounds = GOAMCalculator.build_from_json(goam_scores)
         # --- ADD ROUND NUMBERS ---
-        season_rounds = season_rounds.sort_values(["Date", "Course"]).reset_index(drop=True)
-        season_rounds["Round"] = season_rounds.groupby(["Date", "Course"]).ngroup() + 1
+        season_rounds = season_rounds.sort_values(["Course"]).reset_index(drop=True)
+        season_rounds["Round"] = season_rounds.groupby(["Course"]).ngroup() + 1
 
 
         if not season_rounds.empty:
