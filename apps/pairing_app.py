@@ -334,10 +334,10 @@ def run(mode="matrix"):
 
     pairings_json, warnings = validate_and_map_names(players_df, raw_pairings, alias_map)
 
-    if warnings:
-        with st.expander("⚠️ Name Mismatches Found", expanded=False):
-            for w in warnings:
-                st.write(w)
+ #   if warnings:
+ #       with st.expander("⚠️ Name Mismatches Found", expanded=False):
+ #           for w in warnings:
+ #               st.write(w)
 
     if mode == "matrix":
         show_matrix_page(players_df, pairings_json, alias_map, display_map)
