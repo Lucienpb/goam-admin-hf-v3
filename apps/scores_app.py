@@ -80,6 +80,9 @@ def show_leaderboards():
     st.header("📘 GOAM Scores & Rounds — Leaderboards")
 
     rounds, all_rounds_df, error = _load_scores()
+    st.subheader("🔍 Debug: Rounds Stored")
+    st.write(rounds.rounds)
+
     if error:
         st.error(error)
         return
