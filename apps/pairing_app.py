@@ -108,17 +108,17 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
     official_set = set(players_df["name"].apply(lambda x: normalize_name(x, alias_map)))
     for p in matrix.index:
         if p not in official_set:
-            display_map[p] = f"{p}*"
+            display_map.get(p, p) = f"{p}*"
         else:
             if p not in display_map:
-                display_map[p] = p
+                display_map.get(p, p) = p
 
     matrix_display = matrix.copy().astype(object)
     for p in matrix_display.index:
         matrix_display.loc[p, p] = "-"
 
-    matrix_display.index = [display_map[p] for p in matrix.index]
-    matrix_display.columns = [display_map[p] for p in matrix.columns]
+    matrix_display.index = [display_map.get(p, p) for p in matrix.index]
+    matrix_display.columns = display_map.get(p, p) for p in matrix.columns]
 
     with st.expander("View Matrix", expanded=False):
         st.dataframe(matrix_display)
@@ -136,8 +136,8 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
 
         ax.set_xticks(range(len(matrix.columns)))
         ax.set_yticks(range(len(matrix.index)))
-        ax.set_xticklabels([display_map[p] for p in matrix.columns], rotation=90)
-        ax.set_yticklabels([display_map[p] for p in matrix.index])
+        ax.set_xticklabels([display_map.get(p, p) for p in matrix.columns], rotation=90)
+        ax.set_yticklabels([display_map.get(p, p) for p in matrix.index])
 
         plt.colorbar(im, ax=ax, label="Times paired")
         st.pyplot(fig)
@@ -173,10 +173,10 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
     
         # --- EXPANDABLE LISTS ---
         with st.expander(f"✅ {display_map[lookup_player]} HAS played with ({len(played_with)})", expanded=False):
-            st.table(pd.DataFrame({"Player": [display_map[p] for p in played_with]}))
+            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in played_with]}))
     
         with st.expander(f"❌ {display_map[lookup_player]} has NOT played with ({len(not_played_with)})", expanded=False):
-            st.table(pd.DataFrame({"Player": [display_map[p] for p in not_played_with]}))
+            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in not_played_with]}))
 
 
 
@@ -261,7 +261,7 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 
         with c1:
             st.markdown(
-                f"<div style='font-size:1.1rem; font-weight:600; margin-top:6px;'>{display_map[p]}</div>",
+                f"<div style='font-size:1.1rem; font-weight:600; margin-top:6px;'>{display_map.get(p, p)}</div>",
                 unsafe_allow_html=True
             )
 
