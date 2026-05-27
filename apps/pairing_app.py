@@ -194,7 +194,8 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
         "Choose players for this month",
         all_players,
         default=all_players,
-        format_func=lambda p: display_map[p]
+        format_func=lambda p: display_map.get(p, p)
+
     )
 
     # TEAM INITIALS
