@@ -80,8 +80,7 @@ def show_leaderboards():
     st.header("📘 GOAM Scores & Rounds — Leaderboards")
 
     rounds, all_rounds_df, error = _load_scores()
-    st.subheader("🔍 Debug: Rounds Stored")
-    st.write(rounds.rounds)
+       st.write(rounds.rounds)
 
     if error:
         st.error(error)
@@ -128,13 +127,13 @@ def show_leaderboards():
 
     ips_table = ips_table.copy()
     if "Name" in ips_table.columns:
-        ips_table.insert(
-            2,
-            "Pos Change",
-            ips_table["Name"].apply(
-                lambda name: _format_pos_change(rounds.get_position_change(name))
-            )
-        )
+#        ips_table.insert(
+#            2,
+#            "Pos Change",
+#            ips_table["Name"].apply(
+#                lambda name: _format_pos_change(rounds.get_position_change(name))
+#           )
+#        )
     else:
         ips_table.insert(2, "Pos Change", "–")
 
