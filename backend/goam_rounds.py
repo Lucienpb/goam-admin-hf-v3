@@ -7,80 +7,38 @@
 import pandas as pd
 
 class GOAMRounds:
-    """
-    Stores all rounds (loaded from JSON) in memory.
-    Tracks position history for position change calculations.
-    """
-
     def __init__(self):
-        self.rounds = []  # list of DataFrames
-        self.previous_positions = {}  # {player_name: last_position}
-        self.position_change = {}     # {player_name: delta}
+        self.rounds = []                 # list of round DataFrames
+        self.position_history = {}       # {player: [pos1, pos2, pos3, ...]}
+        self.position_change = {}        # {player: delta}
 
-    def add_round(self, df, course_name=None):
-        df = df.copy()
-        if course_name:
-            df["Course"] = course_name
-        self.rounds.append(df)
-
-    def get_all_rounds(self):
-        if not self.rounds:
-            return pd.DataFrame(columns=["Name", "Strokes", "IPS", "Course", "Team"])
-
-        combined = pd.concat(self.rounds, ignore_index=True)
-
-        if "Team" not in combined.columns:
-            combined["Team"] = None
-
-        return combined
-
-    def update_position_history(self, ips_leaderboard):
+    def update_position_history(self, leaderboard_df):
         """
-        Computes position change relative to the last displayed leaderboard.
-        First load → all players show "–".
-        Subsequent loads → compare previous vs current positions.
+        Called every time the leaderboard is built.
+        This leaderboard represents the latest round.
         """
-    
-        if ips_leaderboard.empty:
-            return
-    
-        # Build dict of current positions
+
+        # Extract current round positions
         current_positions = {
             row["Name"]: int(row["Position"])
-            for _, row in ips_leaderboard.iterrows()
+            for _, row in leaderboard_df.iterrows()
         }
-    
-        # FIRST LOAD → no previous positions stored
-        if not self.previous_positions:
-            self.position_change = {name: None for name in current_positions}
-            self.previous_positions = current_positions.copy()
-            return
-    
-        # Compute deltas
-        movement = {}
-        for name, new_pos in current_positions.items():
-            old_pos = self.previous_positions.get(name)
-    
-            if old_pos is None:
-                # New player → no previous position
-                movement[name] = None
+
+        # Store positions per round
+        for name, pos in current_positions.items():
+            if name not in self.position_history:
+                self.position_history[name] = []
+            self.position_history[name].append(pos)
+
+        # Compute movement (only if 2+ rounds exist)
+        for name, history in self.position_history.items():
+            if len(history) < 2:
+                self.position_change[name] = None
             else:
-                movement[name] = old_pos - new_pos  # positive = moved up
-    
-        # Store for next comparison
-        self.previous_positions = current_positions.copy()
-        self.position_change = movement
+                prev = history[-2]
+                curr = history[-1]
+                self.position_change[name] = prev - curr
 
     def get_position_change(self, name):
-        """
-        Returns +N, -N, or "–"
-        """
-        delta = self.position_change.get(name, None)
+        return self.position_change.get(name)
 
-        if delta is None:
-            return "–"
-        if delta == 0:
-            return "–"
-        if delta > 0:
-            return f"⬆️{delta}"
-        return f"⬇️{abs(delta)}"
