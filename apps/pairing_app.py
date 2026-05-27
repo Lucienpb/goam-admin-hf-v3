@@ -143,38 +143,41 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
         st.pyplot(fig)
 
     # Lookup
-    st.subheader("🔍 Player Pairing Lookup")
+st.subheader("🔍 Player Pairing Lookup")
 
-    players_list = [p.strip() for p in matrix.index]
+players_list = [p.strip() for p in matrix.index]
 
-    lookup_player = st.selectbox(
-        "Select a player",
-        players_list,
-        format_func=lambda p: display_map[p.strip()]
-    )
+lookup_player = st.selectbox(
+    "Select a player",
+    players_list,
+    format_func=lambda p: display_map[p.strip()]
+)
 
-    if lookup_player:
-        lookup_player = lookup_player.strip()
+if lookup_player:
+    lookup_player = lookup_player.strip()
 
-        played_with = []
-        not_played_with = []
+    played_with = []
+    not_played_with = []
 
-        for p in players_list:
-            if p == lookup_player:
-                continue
+    for p in players_list:
+        if p == lookup_player:
+            continue
 
-            val = matrix.loc[lookup_player, p]
+        val = matrix.loc[lookup_player, p]
 
-            if int(val) > 0:
-                played_with.append(p)
-            else:
-                not_played_with.append(p)
+        # FIXED lookup logic
+        if int(val) > 0:
+            played_with.append(p)
+        else:
+            not_played_with.append(p)
 
-        st.markdown(f"### ✅ {display_map[lookup_player]} HAS played with")
+    # --- EXPANDABLE LISTS ---
+    with st.expander(f"✅ {display_map[lookup_player]} HAS played with ({len(played_with)})", expanded=False):
         st.table(pd.DataFrame({"Player": [display_map[p] for p in played_with]}))
 
-        st.markdown(f"### ❌ {display_map[lookup_player]} has NOT played with")
+    with st.expander(f"❌ {display_map[lookup_player]} has NOT played with ({len(not_played_with)})", expanded=False):
         st.table(pd.DataFrame({"Player": [display_map[p] for p in not_played_with]}))
+
 
 
 # ---------------------------------------------------------
