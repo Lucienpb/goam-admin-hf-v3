@@ -125,7 +125,7 @@ def show_leaderboards():
     rounds.update_position_history(ips_table)
 
     ips_table = ips_table.copy()
-    if "Name" in ips_table.columns:
+#    if "Name" in ips_table.columns:
 #        ips_table.insert(
 #            2,
 #            "Pos Change",
@@ -133,8 +133,8 @@ def show_leaderboards():
 #                lambda name: _format_pos_change(rounds.get_position_change(name))
 #           )
 #        )
-    else:
-        ips_table.insert(2, "Pos Change", "–")
+#    else:
+#        ips_table.insert(2, "Pos Change", "–")
 
     # Leaderboard selector
     st.subheader("🏆 Leaderboards")
