@@ -185,7 +185,6 @@ def sync_all_from_github():
 
     for path in files:
         data, sha = github_load_json(path)
-        st.write(f"loaded from github - {path}:", data)
         if data is not None:
             # overwrite local file with latest GitHub data
             with open(path, "w") as f:
