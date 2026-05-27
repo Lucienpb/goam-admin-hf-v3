@@ -34,42 +34,42 @@ class GOAMRounds:
 
         return combined
 
-def update_position_history(self, ips_leaderboard):
-    """
-    Computes position change relative to the last displayed leaderboard.
-    First load → all players show "–".
-    Subsequent loads → compare previous vs current positions.
-    """
-
-    if ips_leaderboard.empty:
-        return
-
-    # Build dict of current positions
-    current_positions = {
-        row["Name"]: int(row["Position"])
-        for _, row in ips_leaderboard.iterrows()
-    }
-
-    # FIRST LOAD → no previous positions stored
-    if not self.previous_positions:
-        self.position_change = {name: None for name in current_positions}
+    def update_position_history(self, ips_leaderboard):
+        """
+        Computes position change relative to the last displayed leaderboard.
+        First load → all players show "–".
+        Subsequent loads → compare previous vs current positions.
+        """
+    
+        if ips_leaderboard.empty:
+            return
+    
+        # Build dict of current positions
+        current_positions = {
+            row["Name"]: int(row["Position"])
+            for _, row in ips_leaderboard.iterrows()
+        }
+    
+        # FIRST LOAD → no previous positions stored
+        if not self.previous_positions:
+            self.position_change = {name: None for name in current_positions}
+            self.previous_positions = current_positions.copy()
+            return
+    
+        # Compute deltas
+        movement = {}
+        for name, new_pos in current_positions.items():
+            old_pos = self.previous_positions.get(name)
+    
+            if old_pos is None:
+                # New player → no previous position
+                movement[name] = None
+            else:
+                movement[name] = old_pos - new_pos  # positive = moved up
+    
+        # Store for next comparison
         self.previous_positions = current_positions.copy()
-        return
-
-    # Compute deltas
-    movement = {}
-    for name, new_pos in current_positions.items():
-        old_pos = self.previous_positions.get(name)
-
-        if old_pos is None:
-            # New player → no previous position
-            movement[name] = None
-        else:
-            movement[name] = old_pos - new_pos  # positive = moved up
-
-    # Store for next comparison
-    self.previous_positions = current_positions.copy()
-    self.position_change = movement
+        self.position_change = movement
 
     def get_position_change(self, name):
         """
