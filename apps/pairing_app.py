@@ -165,7 +165,7 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
 
             val = matrix.loc[lookup_player, p]
 
-            if isinstance(val, int) and val > 0:
+            if int(val) > 0:
                 played_with.append(p)
             else:
                 not_played_with.append(p)
