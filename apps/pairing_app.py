@@ -1,9 +1,6 @@
 #-------------------------------------------------
-#"""
-#Pairing Matrix & Fourball App (JSON Version) — SPLIT MODE (NO TABS)
-#   - Pairing Matrix page
-#   - Fourball Generator page   
-# -------------------------------------------------"""
+# Pairing Matrix & Fourball App (JSON Version)
+#-------------------------------------------------
 
 import streamlit as st
 import pandas as pd
@@ -17,7 +14,6 @@ from utils.name_utils import (
     build_alias_map,
     build_display_name_map
 )
-
 
 # ---------------------------------------------------------
 # NAME VALIDATION & MAPPING LAYER
@@ -108,10 +104,10 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
     official_set = set(players_df["name"].apply(lambda x: normalize_name(x, alias_map)))
     for p in matrix.index:
         if p not in official_set:
-            display_map.get(p, p) = f"{p}*"
+            display_map[p] = f"{p}*"
         else:
             if p not in display_map:
-                display_map.get(p, p) = p
+                display_map[p] = p
 
     matrix_display = matrix.copy().astype(object)
     for p in matrix_display.index:
@@ -144,40 +140,43 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
 
     # Lookup
     st.subheader("🔍 Player Pairing Lookup")
-    
+
     players_list = [p.strip() for p in matrix.index]
-    
+
     lookup_player = st.selectbox(
         "Select a player",
         players_list,
-        format_func=lambda p: display_map[p.strip()]
+        format_func=lambda p: display_map.get(p.strip(), p.strip())
     )
-    
+
     if lookup_player:
         lookup_player = lookup_player.strip()
-    
+
         played_with = []
         not_played_with = []
-    
+
         for p in players_list:
             if p == lookup_player:
                 continue
-    
+
             val = matrix.loc[lookup_player, p]
-    
-            # FIXED lookup logic
+
             if int(val) > 0:
                 played_with.append(p)
             else:
                 not_played_with.append(p)
-    
-        # --- EXPANDABLE LISTS ---
-        with st.expander(f"✅ {display_map[lookup_player]} HAS played with ({len(played_with)})", expanded=False):
-            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in played_with]}))
-    
-        with st.expander(f"❌ {display_map[lookup_player]} has NOT played with ({len(not_played_with)})", expanded=False):
-            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in not_played_with]}))
 
+        with st.expander(
+            f"✅ {display_map.get(lookup_player, lookup_player)} HAS played with ({len(played_with)})",
+            expanded=False
+        ):
+            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in played_with]}))
+
+        with st.expander(
+            f"❌ {display_map.get(lookup_player, lookup_player)} has NOT played with ({len(not_played_with)})",
+            expanded=False
+        ):
+            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in not_played_with]}))
 
 
 # ---------------------------------------------------------
@@ -195,7 +194,6 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
         all_players,
         default=all_players,
         format_func=lambda p: display_map.get(p, p)
-
     )
 
     # TEAM INITIALS
@@ -315,11 +313,6 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 # MAIN ENTRY POINT
 # ---------------------------------------------------------
 def run(mode="matrix"):
-    """
-    mode = "matrix"     → Show pairing matrix page
-    mode = "generator"  → Show 4‑ball generator page
-    """
-
     players = load_json("data/players.json")
     raw_pairings = load_json("data/pairings.json")
 
@@ -338,10 +331,7 @@ def run(mode="matrix"):
 
     pairings_json, warnings = validate_and_map_names(players_df, raw_pairings, alias_map)
 
- #   if warnings:
- #       with st.expander("⚠️ Name Mismatches Found", expanded=False):
- #           for w in warnings:
- #               st.write(w)
+    # mismatches hidden
 
     if mode == "matrix":
         show_matrix_page(players_df, pairings_json, alias_map, display_map)
