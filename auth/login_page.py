@@ -102,9 +102,7 @@ def show_login_page():
     if not login_btn:
         return
 
-    st.info(f"DEBUG: Using users.json at: {Path(USERS_FILE).resolve()}")
-    users = load_users()
-    st.write("LOGIN DEBUG users dict:", users)
+     users = load_users()
 
     # Normalize email for lookup
     email_norm = email.strip().lower()
