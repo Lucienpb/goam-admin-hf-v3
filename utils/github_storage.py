@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import requests
+import streamlit as st
 
 # ------------------------------------------------------------
 # GitHub Repo Configuration
