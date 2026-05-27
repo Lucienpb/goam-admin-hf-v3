@@ -5,11 +5,11 @@ import pandas as pd
 
 def generate_fourballs(players_list, teams, matrix, strict_mode, shuffle_seed, player_modes):
     """
-    GOAM‑correct fourball generator with HARD carting rule:
-    - If exactly 4 carting players → enforce 2+2 split
+    GOAM‑correct fourball generator with cart balancing:
+    - Distributes carting players as evenly as possible across groups
     - Same‑team allowed (soft penalty)
     - Repeat pairings strongly discouraged
-    - Hybrid cart/walk logic (soft)
+    - Hybrid cart/walk logic (soft, on top of hard balancing)
     - Strict mode: only 3‑ and 4‑balls
     - Deterministic via shuffle_seed
     - Guests:
@@ -20,33 +20,6 @@ def generate_fourballs(players_list, teams, matrix, strict_mode, shuffle_seed, p
     random.seed(shuffle_seed)
 
     players = players_list[:]
-
-    # ---------------------------------------------------------
-    # HARD CARTING RULE: if exactly 4 carting players → force 2+2
-    # ---------------------------------------------------------
-    carting_players = [p for p in players if "Carting" in player_modes.get(p, "")]
-    walking_players = [p for p in players if "Carting" not in player_modes.get(p, "")]
-
-    pre_groups = []
-
-    if len(carting_players) == 4:
-        random.shuffle(carting_players)
-        random.shuffle(walking_players)
-
-        # Two forced groups: 2 carting each
-        g1 = [carting_players[0], carting_players[1]]
-        g2 = [carting_players[2], carting_players[3]]
-
-        # Fill each with walkers
-        while len(g1) < 4 and walking_players:
-            g1.append(walking_players.pop())
-        while len(g2) < 4 and walking_players:
-            g2.append(walking_players.pop())
-
-        pre_groups = [g1, g2]
-
-        # Remaining players continue through normal generator
-        players = walking_players[:]
 
     # ---------------------------------------------------------
     # PENALTY MATRIX (SOFT TEAM, STRONG HISTORY, SOFT CART/WALK)
@@ -137,18 +110,37 @@ def generate_fourballs(players_list, teams, matrix, strict_mode, shuffle_seed, p
         return c
 
     # ---------------------------------------------------------
-    # GREEDY GROUP BUILDING
+    # CART BALANCING: spread carts across groups first
     # ---------------------------------------------------------
-    remaining = players[:]
+    carting_players = [p for p in players if "Carting" in player_modes.get(p, "")]
+    walking_players = [p for p in players if "Carting" not in player_modes.get(p, "")]
+
+    random.shuffle(carting_players)
+    random.shuffle(walking_players)
+
+    num_groups = len(group_sizes)
+    groups = [[] for _ in range(num_groups)]
+
+    # assign carts as evenly as possible, respecting group size limits
+    gi = 0
+    for p in carting_players:
+        # find next group with free slot
+        attempts = 0
+        while attempts < num_groups and len(groups[gi]) >= group_sizes[gi]:
+            gi = (gi + 1) % num_groups
+            attempts += 1
+        groups[gi].append(p)
+        gi = (gi + 1) % num_groups
+
+    # remaining players to place via greedy logic
+    remaining = walking_players[:]
     random.shuffle(remaining)
 
-    groups = pre_groups[:]  # start with forced carting groups
-
-    for size in group_sizes[len(pre_groups):]:
-        group = []
-        first = remaining.pop()
-        group.append(first)
-
+    # ---------------------------------------------------------
+    # GREEDY GROUP BUILDING (FILL EXISTING GROUPS)
+    # ---------------------------------------------------------
+    for idx, size in enumerate(group_sizes):
+        group = groups[idx]
         while len(group) < size and remaining:
             best_p = None
             best_cost = float("inf")
@@ -161,8 +153,6 @@ def generate_fourballs(players_list, teams, matrix, strict_mode, shuffle_seed, p
 
             group.append(best_p)
             remaining.remove(best_p)
-
-        groups.append(group)
 
     # ---------------------------------------------------------
     # LOCAL OPTIMISATION (SWAPS)
