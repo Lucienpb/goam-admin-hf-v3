@@ -118,7 +118,7 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
         matrix_display.loc[p, p] = "-"
 
     matrix_display.index = [display_map.get(p, p) for p in matrix.index]
-    matrix_display.columns = display_map.get(p, p) for p in matrix.columns]
+    matrix_display.columns = [display_map.get(p, p) for p in matrix.columns]
 
     with st.expander("View Matrix", expanded=False):
         st.dataframe(matrix_display)
