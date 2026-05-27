@@ -34,43 +34,53 @@ class GOAMRounds:
 
         return combined
 
-    def update_position_history(self, ips_leaderboard):
-        """
-        Called AFTER the IPS leaderboard is built.
-        Leaderboard MUST contain a 'Position' column.
-        """
+def update_position_history(self, ips_leaderboard):
+    """
+    Computes position change relative to the last displayed leaderboard.
+    First load → all players show "–".
+    Subsequent loads → compare previous vs current positions.
+    """
 
-        if ips_leaderboard.empty:
-            return
+    if ips_leaderboard.empty:
+        return
 
-        # Build dict of current positions
-        current_positions = {
-            row["Name"]: row["Position"]
-            for _, row in ips_leaderboard.iterrows()
-        }
+    # Build dict of current positions
+    current_positions = {
+        row["Name"]: int(row["Position"])
+        for _, row in ips_leaderboard.iterrows()
+    }
 
-        # Compute position change
-        self.position_change = {}
-        for name, new_pos in current_positions.items():
-            old_pos = self.previous_positions.get(name, new_pos)
-            delta = old_pos - new_pos  # positive = moved up
-            self.position_change[name] = delta
-
-        # Store new positions for next comparison
+    # FIRST LOAD → no previous positions stored
+    if not self.previous_positions:
+        self.position_change = {name: None for name in current_positions}
         self.previous_positions = current_positions.copy()
+        return
+
+    # Compute deltas
+    movement = {}
+    for name, new_pos in current_positions.items():
+        old_pos = self.previous_positions.get(name)
+
+        if old_pos is None:
+            # New player → no previous position
+            movement[name] = None
+        else:
+            movement[name] = old_pos - new_pos  # positive = moved up
+
+    # Store for next comparison
+    self.previous_positions = current_positions.copy()
+    self.position_change = movement
 
     def get_position_change(self, name):
         """
         Returns +N, -N, or "–"
         """
-        if name not in self.position_change:
+        delta = self.position_change.get(name, None)
+
+        if delta is None:
             return "–"
-
-        delta = self.position_change[name]
-
         if delta == 0:
             return "–"
-        elif delta > 0:
-            return f"+{delta}"
-        else:
-            return str(delta)
+        if delta > 0:
+            return f"⬆️{delta}"
+        return f"⬇️{abs(delta)}"
