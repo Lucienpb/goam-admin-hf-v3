@@ -174,7 +174,7 @@ def save_user_record(username, updated_record):
 # ------------------------------------------------------------
 def sync_all_from_github():
     files = [
-        "data/users.json",
+        "data/user.json",
         "data/course_data.json",
         "data/goam_scores.json",
         "data/goam_rounds.json",
@@ -184,6 +184,7 @@ def sync_all_from_github():
 
     for path in files:
         data, sha = github_load_json(path)
+        st.write(f"loaded from github - {path}:", data)
         if data is not None:
             # overwrite local file with latest GitHub data
             with open(path, "w") as f:
