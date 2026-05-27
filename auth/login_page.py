@@ -102,7 +102,7 @@ def show_login_page():
     if not login_btn:
         return
 
-     users = load_users()
+    users = load_users()
 
     # Normalize email for lookup
     email_norm = email.strip().lower()
