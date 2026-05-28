@@ -1,140 +1,82 @@
 # utils/rag_engine.py
 from pathlib import Path
-from typing import List, Dict, Tuple
-
-import pandas as pd
+from typing import List, Dict
 import streamlit as st
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
 from utils.json_utils import load_json
 
 DATA_DIR = Path("data")
 
 
-def _load_goam_data() -> Dict[str, pd.DataFrame]:
-    scores = load_json(DATA_DIR / "goam_scores.json")
-    players = load_json(DATA_DIR / "players.json")
-    pairings = load_json(DATA_DIR / "pairings.json")
-    courses = load_json(DATA_DIR / "course_data.json")
+def _load_goam_data() -> List[str]:
+    """
+    Load all GOAM JSON files and convert them into simple text chunks.
+    No external libraries required.
+    """
+
+    chunks = []
 
     # Scores
-    score_rows = []
+    scores = load_json(DATA_DIR / "goam_scores.json")
     for month, data in scores.items():
+        course = data.get("course")
         for p in data.get("players", []):
-            score_rows.append({
-                "type": "score",
-                "month": month,
-                "course": data.get("course"),
-                "name": p.get("name"),
-                "strokes": p.get("strokes"),
-                "nett": p.get("nett"),
-                "ips": p.get("ips"),
-                "team": p.get("team"),
-            })
-    scores_df = pd.DataFrame(score_rows)
+            chunks.append(
+                f"{p.get('name')} scored IPS {p.get('ips')} at {course} in {month}. "
+                f"Strokes {p.get('strokes')}, Nett {p.get('nett')}, Team {p.get('team')}."
+            )
 
     # Players
-    players_df = pd.DataFrame(players)
+    players = load_json(DATA_DIR / "players.json")
+    for p in players:
+        chunks.append(
+            f"Player {p.get('name')} has handicap {p.get('handicap_index')} "
+            f"and team {p.get('team')}."
+        )
 
     # Pairings
-    pairing_rows = []
+    pairings = load_json(DATA_DIR / "pairings.json")
     for month, data in pairings.items():
+        course = data.get("course")
         for fb in data.get("fourballs", []):
-            pairing_rows.append({
-                "type": "pairing",
-                "month": month,
-                "course": data.get("course"),
-                "fourball": fb.get("fourball"),
-                "players": ", ".join(fb.get("players", [])),
-            })
-    pairings_df = pd.DataFrame(pairing_rows)
+            chunks.append(
+                f"Fourball {fb.get('fourball')} at {course} in {month} "
+                f"with players {', '.join(fb.get('players', []))}."
+            )
 
     # Courses
-    course_rows = []
+    courses = load_json(DATA_DIR / "course_data.json")
     for course_name, info in courses.items():
         for tee_name, tee in info.get("tees", {}).items():
-            course_rows.append({
-                "type": "course",
-                "course": course_name,
-                "tee": tee_name,
-                "slope": tee.get("slope"),
-                "rating": tee.get("rating"),
-                "par": tee.get("par"),
-            })
-    courses_df = pd.DataFrame(course_rows)
+            chunks.append(
+                f"Course {course_name} tee {tee_name} has slope {tee.get('slope')}, "
+                f"rating {tee.get('rating')}, par {tee.get('par')}."
+            )
 
-    return {
-        "scores": scores_df,
-        "players": players_df,
-        "pairings": pairings_df,
-        "courses": courses_df,
-    }
-
-
-def _build_documents(data: Dict[str, pd.DataFrame]) -> List[Dict]:
-    docs = []
-
-    for _, row in data["scores"].iterrows():
-        docs.append({
-            "text": (
-                f"{row['name']} scored IPS {row['ips']} at {row['course']} "
-                f"in {row['month']} (strokes {row['strokes']}, nett {row['nett']})."
-            ),
-            "meta": row.to_dict()
-        })
-
-    for _, row in data["players"].iterrows():
-        docs.append({
-            "text": (
-                f"Player {row.get('name')} with handicap {row.get('handicap_index')} "
-                f"and team {row.get('team')}."
-            ),
-            "meta": row.to_dict()
-        })
-
-    for _, row in data["pairings"].iterrows():
-        docs.append({
-            "text": (
-                f"Fourball {row['fourball']} at {row['course']} in {row['month']} "
-                f"with players {row['players']}."
-            ),
-            "meta": row.to_dict()
-        })
-
-    for _, row in data["courses"].iterrows():
-        docs.append({
-            "text": (
-                f"Course {row['course']} tee {row['tee']} has slope {row['slope']}, "
-                f"rating {row['rating']}, par {row['par']}."
-            ),
-            "meta": row.to_dict()
-        })
-
-    return docs
+    return chunks
 
 
 @st.cache_resource
-def build_rag_index() -> Tuple[TfidfVectorizer, pd.DataFrame]:
-    data = _load_goam_data()
-    docs = _build_documents(data)
-
-    df_docs = pd.DataFrame(docs)
-    vectorizer = TfidfVectorizer(stop_words="english")
-    vectors = vectorizer.fit_transform(df_docs["text"].tolist())
-
-    df_docs["vector"] = list(vectors.toarray())
-    return vectorizer, df_docs
+def load_chunks() -> List[str]:
+    """Cache all GOAM text chunks."""
+    return _load_goam_data()
 
 
 def retrieve_context(query: str, top_k: int = 6) -> List[str]:
-    vectorizer, df_docs = build_rag_index()
+    """
+    Simple keyword-based retrieval.
+    No scikit-learn, no numpy, works in Docker.
+    """
 
-    q_vec = vectorizer.transform([query]).toarray()
-    doc_matrix = pd.DataFrame(df_docs["vector"].tolist())
+    chunks = load_chunks()
+    query_words = query.lower().split()
 
-    sims = cosine_similarity(q_vec, doc_matrix)[0]
-    df_docs["score"] = sims
+    scored = []
+    for text in chunks:
+        score = sum(1 for w in query_words if w in text.lower())
+        if score > 0:
+            scored.append((score, text))
 
-    top = df_docs.sort_values("score", ascending=False).head(top_k)
-    return top["text"].tolist()
+    # Sort by score descending
+    scored.sort(reverse=True, key=lambda x: x[0])
+
+    return [t for _, t in scored[:top_k]]
