@@ -2,9 +2,8 @@
 import streamlit as st
 import textwrap
 
-from utils.llm_client import FreeLLMClient
+from utils.local_llm import LocalLLM
 from utils.rag_engine import retrieve_context
-
 
 SYSTEM_PROMPT = """
 You are GOAM Assistant, a golf analytics expert.
@@ -13,8 +12,7 @@ If the answer is not in the context, say you don't know.
 Explain numbers in simple English.
 """
 
-
-def _build_prompt(question: str, context_chunks: list[str]) -> str:
+def build_prompt(question: str, context_chunks: list[str]) -> str:
     context_block = "\n".join(context_chunks)
     return textwrap.dedent(f"""
         {SYSTEM_PROMPT}
@@ -28,11 +26,8 @@ def _build_prompt(question: str, context_chunks: list[str]) -> str:
         Answer:
     """)
 
-
 def run():
-    st.header("🤖 AI Chat — Free Version (Gemma‑2B‑IT)")
-
-    st.markdown("Ask anything about GOAM scores, players, pairings, or trends.")
+    st.header("🤖 AI Chat — Local Gemma‑2B‑IT")
 
     if "goam_chat" not in st.session_state:
         st.session_state.goam_chat = []
@@ -53,10 +48,10 @@ def run():
 
         with st.spinner("Thinking..."):
             context = retrieve_context(question)
-            prompt = _build_prompt(question, context)
+            prompt = build_prompt(question, context)
 
-            client = FreeLLMClient()
-            answer = client.chat(prompt)
+            llm = LocalLLM()
+            answer = llm.chat(prompt)
 
         st.session_state.goam_chat.append(("assistant", answer))
         st.experimental_rerun()
