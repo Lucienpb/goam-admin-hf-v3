@@ -259,37 +259,45 @@ with st.sidebar.expander("📘 Scores", expanded=False):
 with st.sidebar.expander("🏌️ Handicap", expanded=False):
     if not scraper_awake:
         st.button("Single Player", disabled=True)
-        st.button("Batch", disabled=True)
+        if role == "admin":
+            st.button("Batch", disabled=True)
     else:
         if st.button("Single Player"):
             st.session_state.page = "handicap"
             st.session_state.handicap_mode = "single"
-        if st.button("Batch"):
-            st.session_state.page = "handicap"
-            st.session_state.handicap_mode = "batch"
+
+        # Only admins may use Batch mode
+        if role == "admin":
+            if st.button("Batch"):
+                st.session_state.page = "handicap"
+                st.session_state.handicap_mode = "batch"
+
     if st.button("Calculator"):
         st.session_state.page = "handicap"
         st.session_state.handicap_mode = "calculator"
+
 
 # PAIRINGS GROUP
 with st.sidebar.expander("⛳ Pairings", expanded=False):
     if st.button("Matrix"):
         st.session_state.page = "pairings_matrix"
-    if st.button("4‑Ball Generation"):
-        st.session_state.page = "pairings_gen"
 
-# ADMIN GROUP
-with st.sidebar.expander("🛠️ Admin", expanded=False):
-    if st.button("User Management"):
-        st.session_state.page = "admin_users"
-    if st.button("Data Manager"):
-        st.session_state.page = "admin_data"
+    # Only admins may generate 4‑balls
+    if role == "admin":
+        if st.button("4‑Ball Generation"):
+            st.session_state.page = "pairings_gen"
 
-
+# ADMIN GROUP (Admins only)
+if role == "admin":
+    with st.sidebar.expander("🛠️ Admin", expanded=False):
+        if st.button("User Management"):
+            st.session_state.page = "admin_users"
+        if st.button("Data Manager"):
+            st.session_state.page = "admin_data"
 
 # AI CHAT GROUP
 with st.sidebar.expander("🤖 AI", expanded=False):
-    if st.button("AI Chat (Free)"):
+    if st.button("GOAM AI Chat"):
         st.session_state.page = "ai_chat"
 
 st.sidebar.markdown("---")
