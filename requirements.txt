@@ -17,3 +17,5 @@ xlsxwriter
 
 # Misc utilities
 python-dateutil
+
+llama-cpp-python==0.2.56
