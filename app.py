@@ -30,6 +30,7 @@ from apps.goam_dashboard import run as run_goam_dashboard
 from utils.handicap_calculator import load_course_data
 from admin.data_manager_page import show_data_manager_page
 from utils.github_storage import sync_all_from_github   # <-- already imported
+from apps.ai_chat import run as run_ai_chat
 
 SESSION_TIMEOUT = 3600  # 1 hour
 
@@ -284,6 +285,13 @@ with st.sidebar.expander("🛠️ Admin", expanded=False):
     if st.button("Data Manager"):
         st.session_state.page = "admin_data"
 
+
+
+# AI CHAT GROUP
+with st.sidebar.expander("🤖 AI", expanded=False):
+    if st.button("AI Chat (Free)"):
+        st.session_state.page = "ai_chat"
+
 st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Logout"):
     st.session_state.authenticated = False
@@ -321,4 +329,6 @@ elif page == "admin_users":
 
 elif page == "admin_data":
     show_data_manager_page()
-    
+
+elif page == "ai_chat":
+    run_ai_chat()
