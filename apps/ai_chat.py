@@ -1,49 +1,62 @@
 import streamlit as st
+import pandas as pd
 import textwrap
-import os
-from huggingface_hub import InferenceClient
 
 from utils.rag_engine import retrieve_context
+from goam_ai.query_parser import parse_query
+from goam_ai.dispatcher import dispatch
+from goam_ai.llm_client import generate
+
 
 SYSTEM_PROMPT = """
-You are GOAM Assistant, a golf analytics expert.
-You ONLY answer using the context provided.
-If the answer is not in the context, say you don't know.
-Explain numbers in simple English.
+You are GOAM Assistant, a friendly golf analytics expert.
+You answer using:
+1) The user's real GOAM data (action_result)
+2) The retrieved context (RAG)
+3) Simple, clear English
+
+Rules:
+- Never invent numbers.
+- Always explain IPS, strokes, nett in simple terms.
+- If action_result contains an error, explain it politely.
 """
 
-# Hugging Face API client
-client = InferenceClient(
-    "meta-llama/Llama-3.1-8B-Instruct",
-    token=os.environ.get("HF_TOKEN")
-)
 
-def ask_llm(prompt: str) -> str:
-    """Send prompt to Hugging Face Inference API."""
-    response = client.text_generation(
-        prompt,
-        max_new_tokens=300,
-        temperature=0.2,
-        repetition_penalty=1.1
-    )
-    return response
-
-def build_prompt(question: str, context_chunks: list[str]) -> str:
+def build_answer_prompt(question: str, context_chunks: list[str], action_result: dict | None) -> str:
     context_block = "\n".join(context_chunks)
+
+    action_block = ""
+    if action_result:
+        action_block = f"\nAction result:\n{action_result}\n"
+
     return textwrap.dedent(f"""
         {SYSTEM_PROMPT}
+
         Context:
         {context_block}
+
+        {action_block}
+
         Question:
         {question}
+
         Answer:
     """)
 
-def run():
-    st.header("🤖 AI Chat — GOAM Assistant (Hugging Face API)")
 
+def run():
+    st.header("🤖 GOAM AI Chat (Hugging Face API)")
+
+    # Chat history
     if "goam_chat" not in st.session_state:
         st.session_state.goam_chat = []
+
+    # Load scores DataFrame (must be set in session_state by your main app)
+    df: pd.DataFrame = st.session_state.get("scores_df")
+
+    if df is None:
+        st.error("GOAM scores DataFrame not loaded. Make sure you set st.session_state['scores_df'].")
+        return
 
     # Display chat history
     for role, msg in st.session_state.goam_chat:
@@ -54,16 +67,31 @@ def run():
 
     st.markdown("---")
 
-    question = st.text_input("Your question")
+    question = st.text_input("Ask anything about your GOAM stats…")
 
     if st.button("Ask") and question.strip():
         st.session_state.goam_chat.append(("user", question))
 
-        with st.spinner("Thinking..."):
+        with st.spinner("Thinking…"):
+            # 1) Convert question → structured action
+            instruction = parse_query(question)
+
+            # 2) Run the action on your real GOAM data
+            action_result = dispatch(df, instruction)
+
+            # 3) Retrieve RAG context
             context = retrieve_context(question)
-            prompt = build_prompt(question, context)
 
-            answer = ask_llm(prompt)
+            # 4) Build final LLM prompt
+            prompt = build_answer_prompt(question, context, action_result)
 
+            # 5) Generate natural language answer
+            answer = generate(prompt, max_new_tokens=400, temperature=0.3)
+
+        # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
         st.experimental_rerun()
+
+    # Optional: show trajectory chart if last action returned data
+    if st.session_state.goam_chat:
+        last_action = st.session_state.goam_chat[-1][1]
