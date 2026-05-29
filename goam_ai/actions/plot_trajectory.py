@@ -1,6 +1,6 @@
 import pandas as pd
 
-def plot_trajectory(df: pd.DataFrame, player: str, metric: str, rounds: int | None = None) -> pd.DataFrame:
+def plot_trajectory(df: pd.DataFrame, player: str, metric: str, rounds: int | None = None):
     if metric not in df.columns:
         raise ValueError(f"Unknown metric: {metric}")
 
@@ -8,10 +8,8 @@ def plot_trajectory(df: pd.DataFrame, player: str, metric: str, rounds: int | No
     if data.empty:
         raise ValueError(f"No data for player: {player}")
 
-    data = data.sort_values("date") if "date" in data.columns else data
+    data = data.sort_values("month")  # months are strings like "Feb'26"
     if rounds:
         data = data.tail(rounds)
 
-    # Ensure an index suitable for plotting
-    data = data.reset_index(drop=True)
-    return data[["date", metric]] if "date" in data.columns else data[[metric]]
+    return data[["month", metric]]
