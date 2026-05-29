@@ -20,9 +20,10 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Create models folder
 RUN mkdir -p /app/models
 
-# Download Gemma 2B IT GGUF (quantized)
-RUN wget -O /app/models/gemma-2b-it.Q4_K_M.gguf \
-    https://huggingface.co/second-state/Gemma-2B-gguf/resolve/main/gemma-2b-it.Q4_K_M.gguf
+RUN mkdir -p /app/models && \
+    wget -O /app/models/gemma-2b-it.Q4_K_M.gguf \
+    https://huggingface.co/ggml-org/gemma-2b-it-GGUF/resolve/main/gemma-2b-it.Q4_K_M.gguf
+
 
 # Expose Streamlit port
 EXPOSE 8501
