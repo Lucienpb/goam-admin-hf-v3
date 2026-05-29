@@ -11,9 +11,9 @@ def get_client() -> InferenceClient:
 
 def generate(prompt: str, max_new_tokens: int = 300, temperature: float = 0.2) -> str:
     client = get_client()
-    return client.text_generation(
-        prompt,
-        max_new_tokens=max_new_tokens,
+    response = client.chat_completion(
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_new_tokens,
         temperature=temperature,
-        repetition_penalty=1.1,
     )
+    return response.choices[0].message["content"]
