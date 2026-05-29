@@ -1,56 +1,69 @@
 # utils/rag_engine.py
 from pathlib import Path
-from typing import List, Dict
+from typing import List
 import streamlit as st
-from utils.json_utils import load_json
+import json
 
 DATA_DIR = Path("data")
 
 
+def load_json(path: Path):
+    if not path.exists():
+        return {}
+    with open(path, "r") as f:
+        return json.load(f)
+
+
 def _load_goam_data() -> List[str]:
     """
-    Load all GOAM JSON files and convert them into simple text chunks.
-    No external libraries required.
+    Convert your GOAM JSON structure into simple text chunks
+    that the LLM can use as context.
     """
 
     chunks = []
 
-    # Scores
     scores = load_json(DATA_DIR / "goam_scores.json")
+
     for month, data in scores.items():
         course = data.get("course")
-        for p in data.get("players", []):
-            chunks.append(
-                f"{p.get('name')} scored IPS {p.get('ips')} at {course} in {month}. "
-                f"Strokes {p.get('strokes')}, Nett {p.get('nett')}, Team {p.get('team')}."
-            )
+        players = data.get("players", [])
 
-    # Players
-    players = load_json(DATA_DIR / "players.json")
-    for p in players:
+        # Month summary
         chunks.append(
-            f"Player {p.get('name')} has handicap {p.get('handicap_index')} "
-            f"and team {p.get('team')}."
+            f"In {month} at {course}, there were {len(players)} players."
         )
 
-    # Pairings
-    pairings = load_json(DATA_DIR / "pairings.json")
-    for month, data in pairings.items():
-        course = data.get("course")
-        for fb in data.get("fourballs", []):
+        # Player-level chunks
+        for p in players:
+            name = p.get("name")
+            strokes = p.get("strokes")
+            ips = p.get("ips")
+            nett = p.get("nett")
+            team = p.get("team")
+
             chunks.append(
-                f"Fourball {fb.get('fourball')} at {course} in {month} "
-                f"with players {', '.join(fb.get('players', []))}."
+                f"{name} played at {course} in {month} with strokes {strokes}, "
+                f"IPS {ips}, nett {nett}, team {team}."
             )
 
-    # Courses
-    courses = load_json(DATA_DIR / "course_data.json")
-    for course_name, info in courses.items():
-        for tee_name, tee in info.get("tees", {}).items():
+        # Placements
+        placements = data.get("placements", [])
+        for place in placements:
             chunks.append(
-                f"Course {course_name} tee {tee_name} has slope {tee.get('slope')}, "
-                f"rating {tee.get('rating')}, par {tee.get('par')}."
+                f"{place['name']} placed {place['position']} in {month} with IPS {place['ips']}."
             )
+
+        # LIV totals
+        liv = data.get("liv_totals", {})
+        for team_name, total in liv.items():
+            chunks.append(
+                f"In {month}, team {team_name} had a LIV total of {total}."
+            )
+
+        # OX Nau
+        ox = data.get("ox_nau")
+        if ox:
+            chunks.append(f"In {month}, the OX Nau was {ox}.")
 
     return chunks
 
@@ -64,7 +77,7 @@ def load_chunks() -> List[str]:
 def retrieve_context(query: str, top_k: int = 6) -> List[str]:
     """
     Simple keyword-based retrieval.
-    No scikit-learn, no numpy, works in Docker.
+    No heavy dependencies. Works in Docker.
     """
 
     chunks = load_chunks()
@@ -76,7 +89,6 @@ def retrieve_context(query: str, top_k: int = 6) -> List[str]:
         if score > 0:
             scored.append((score, text))
 
-    # Sort by score descending
     scored.sort(reverse=True, key=lambda x: x[0])
 
     return [t for _, t in scored[:top_k]]
