@@ -3,4 +3,5 @@ __all__ = [
     "llm_client",
     "query_parser",
     "dispatcher",
+    "data_loader",
 ]
