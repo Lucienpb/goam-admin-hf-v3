@@ -6,7 +6,7 @@ MODEL_ID = "meta-llama/Llama-3.1-8B-Instruct"
 def get_client() -> InferenceClient:
     token = os.environ.get("HF_TOKEN")
     if not token:
-        raise RuntimeError("HF_TOKEN is missing in environment variables / Hugging Face Secrets")
+        raise RuntimeError("HF_TOKEN missing in Hugging Face Secrets")
     return InferenceClient(MODEL_ID, token=token)
 
 def generate(prompt: str, max_new_tokens: int = 300, temperature: float = 0.2) -> str:
