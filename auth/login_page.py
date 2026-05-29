@@ -18,6 +18,8 @@ from auth.auth import load_users, verify_password, USERS_FILE
 
 from utils.github_storage import load_all_app_data
 
+from goam_ai.data_loader import json_to_df
+
 # ========================================================================
 # THROTTLE / LOCKOUT SETTINGS
 # ========================================================================
@@ -160,7 +162,8 @@ def show_login_page():
             st.session_state[f"{key}_sha"] = payload["sha"]
 
         st.info("GitHub data loaded successfully.")
-
+        if "goam_scores" in st.session_state:
+            st.session_state["scores_df"] = json_to_df(st.session_state["goam_scores"])
     except Exception as e:
         st.error(f"Failed to load data from GitHub: {e}")
         return
