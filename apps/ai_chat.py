@@ -90,7 +90,7 @@ def run():
 
         # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
-        st.experimental_rerun()
+        st.rerun()
 
     # Optional: show trajectory chart if last action returned data
     if st.session_state.goam_chat:
