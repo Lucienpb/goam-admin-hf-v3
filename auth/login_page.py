@@ -164,6 +164,7 @@ def show_login_page():
         st.info("GitHub data loaded successfully.")
         if "goam_scores" in st.session_state:
             st.session_state["scores_df"] = json_to_df(st.session_state["goam_scores"])
+            st.dataframe(st.session_state["scores_df"])
     except Exception as e:
         st.error(f"Failed to load data from GitHub: {e}")
         return
