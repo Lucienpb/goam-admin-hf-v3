@@ -1,12 +1,10 @@
-import pandas as pd
-
 def compare_players(df, players: list, metric="ips"):
     if len(players) != 2:
         return {"error": "compare_players requires exactly 2 players"}
 
     p1, p2 = players
-    d1 = df[df["name"] == p1]
-    d2 = df[df["name"] == p2]
+    d1 = df[df["player"] == p1]
+    d2 = df[df["player"] == p2]
 
     if d1.empty or d2.empty:
         return {"error": "One or both players have no data"}
