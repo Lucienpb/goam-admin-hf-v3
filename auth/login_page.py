@@ -152,9 +152,9 @@ def show_login_page():
     users = load_users()
     
     # Find the matching player name
-    for u in users:
-        if u["email"].lower() == email.lower():
-            st.session_state["player_name"] = u["name"]
+    for user_email, user_data in users.items():
+        if user_email.lower() == email.lower():
+            st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
             break
 
     st.success("Login successful!")
