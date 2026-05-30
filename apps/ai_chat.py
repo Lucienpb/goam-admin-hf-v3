@@ -53,7 +53,7 @@ def run():
 
     # Load scores DataFrame (must be set in session_state by your main app)
     df: pd.DataFrame = st.session_state.get("scores_df")
-    st.dataframe(st.session_state["scores_df"])
+    
     if df is None:
         st.error("GOAM scores DataFrame not loaded. Make sure you set st.session_state['scores_df'].")
         return
