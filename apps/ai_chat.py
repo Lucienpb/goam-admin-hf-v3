@@ -68,7 +68,15 @@ def run():
     st.markdown("---")
 
     question = st.text_input("Ask anything about your GOAM stats…")
-
+    df = df.rename(columns={
+    "player": "Name",
+    "strokes": "Strokes",
+    "ips": "IPS",
+    "course": "Course",
+    "team": "Team",
+    "month": "Month",
+    "nett": "Nett"
+    })
     if st.button("Ask") and question.strip():
         st.session_state.goam_chat.append(("user", question))
 
