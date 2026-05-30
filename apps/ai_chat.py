@@ -93,7 +93,8 @@ def run():
                 question,
                 players_list=players_list,
                 teams_list=teams_list,
-                courses_list=courses_list
+                courses_list=courses_list,
+                logged_in_player=logged_in_player
             )
 
             # 2) Run the action on your real GOAM data
