@@ -6,9 +6,10 @@ def summarize_team(df, team: str):
 
     return {
         "team": team,
-        "players": sorted(tdf["name"].unique().tolist()),
+        "players": sorted(tdf["player"].unique().tolist()),
         "rounds": len(tdf),
         "avg_ips": float(tdf["ips"].mean()),
         "best_ips": float(tdf["ips"].max()),
         "worst_ips": float(tdf["ips"].min()),
+        "avg_strokes": float(tdf["strokes"].mean()),
     }
