@@ -167,4 +167,12 @@ def show_login_page():
             st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
             break
     
+    # Build scores_df for AI Chat
+    if "goam_scores" in st.session_state:
+        try:
+            st.session_state["scores_df"] = json_to_df(st.session_state["goam_scores"])
+        except Exception as e:
+            st.error(f"Failed to build scores_df: {e}")
+    
     st.rerun()
+
