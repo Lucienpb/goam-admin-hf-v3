@@ -20,7 +20,7 @@ Rules:
 - Always explain IPS, strokes, nett in simple terms.
 - If action_result contains an error, explain it politely.
 """
-
+logged_in_player = st.session_state.get("player_name")
 
 def build_answer_prompt(question: str, context_chunks: list[str], action_result: dict | None) -> str:
     context_block = "\n".join(context_chunks)
