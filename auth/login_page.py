@@ -151,12 +151,6 @@ def show_login_page():
     email = st.session_state.get("email")
     users = load_users()
     
-    # Find the matching player name
-    for user_email, user_data in users.items():
-        if user_email.lower() == email.lower():
-            st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
-            break
-
     st.success("Login successful!")
     # ------------------------------------------------------------
     # NEW: Load all GitHub data after successful login
