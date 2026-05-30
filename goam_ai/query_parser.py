@@ -92,6 +92,24 @@ def extract_course(question: str):
 # ------------------------------------------------------------
 def parse_query(question: str):
     q = question.lower()
+    # --------------------------------------------------------
+    # IDENTITY QUESTIONS ("Who am I", "What is my name")
+    # --------------------------------------------------------
+    if any(phrase in q for phrase in ["who am i", "what is my name", "who is logged in"]):
+        logged_email = st.session_state.get("email", "").lower()
+        players = st.session_state.get("players", [])
+
+        for p in players:
+            if p.get("email", "").lower() == logged_email:
+                return {
+                    "action": "identity",
+                    "player": p.get("name")
+                }
+
+        return {
+            "action": "identity",
+            "player": None
+        }
 
     players = extract_players(question)
     team = extract_team(question)
