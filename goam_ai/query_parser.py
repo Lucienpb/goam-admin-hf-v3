@@ -33,14 +33,26 @@ def build_parser_prompt(question: str) -> str:
         JSON:
     """)
 
-def parse_query(question: str) -> dict:
-    prompt = build_parser_prompt(question)
-    raw = generate(prompt, max_new_tokens=256, temperature=0.1).strip()
+def parse_query(question: str):
+    q = question.lower()
+    players = extract_players(q)
 
-    # Extract JSON safely
-    start = raw.find("{")
-    end = raw.rfind("}")
-    if start != -1 and end != -1:
-        raw = raw[start:end+1]
+    # --- Compare trends (requires exactly 2 players) ---
+    if ("compare" in q or "vs" in q or "versus" in q) and len(players) == 2:
+        return {"action": "compare_trends", "players": players}
 
-    return json.loads(raw)
+    if "trend" in q and len(players) == 2:
+        return {"action": "compare_trends", "players": players}
+
+    # --- Single-player trend / trajectory ---
+    if "trend" in q or "trajectory" in q or "improving" in q:
+        if len(players) == 1:
+            return {"action": "plot_trajectory", "player": players[0]}
+
+    # --- Default: single-player summary ---
+    if len(players) == 1:
+        return {"action": "summarize_player", "player": players[0]}
+
+    # --- Fallback ---
+    return {"action": "general_question", "query": question}
+
