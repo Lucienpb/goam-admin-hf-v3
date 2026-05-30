@@ -1,18 +1,20 @@
 def summarize_player(df, player: str):
-    pdf = df[df["name"] == player]
+    pdf = df[df["player"] == player]
 
     if pdf.empty:
         return {"error": f"No data found for player {player}"}
 
-    latest = pdf.sort_values("date").iloc[-1]
-
     return {
         "player": player,
         "rounds": len(pdf),
-        "latest_ips": float(latest["ips"]),
-        "latest_strokes": int(latest["strokes"]),
-        "latest_nett": float(latest["nett"]),
+        "avg_ips": float(pdf["ips"].mean()),
         "best_ips": float(pdf["ips"].max()),
         "worst_ips": float(pdf["ips"].min()),
-        "avg_ips": float(pdf["ips"].mean()),
+        "avg_strokes": float(pdf["strokes"].mean()),
+        "best_strokes": int(pdf["strokes"].min()),
+        "worst_strokes": int(pdf["strokes"].max()),
+        "teams": sorted(pdf["team"].unique().tolist()),
+        "courses": sorted(pdf["course"].unique().tolist()),
+        "months": sorted(pdf["month"].unique().tolist()),
     }
+
