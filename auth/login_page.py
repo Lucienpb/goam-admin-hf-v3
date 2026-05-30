@@ -179,9 +179,11 @@ def show_login_page():
         st.error(f"Failed to load data from GitHub: {e}")
         return
     #
-    st.session_state.authenticated = True
-    st.session_state.email = email_norm
-    st.session_state.role = user.get("role", "member")
-    st.session_state.login_time = datetime.now()
+    if ok:
+        st.session_state.authenticated = True
+        st.session_state.email = email
+        st.session_state.role = role
+        st.session_state.login_time = datetime.now()
+
 
     st.rerun()
