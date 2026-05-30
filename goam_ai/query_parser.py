@@ -1,178 +1,122 @@
-import streamlit as st
+import re
 
-# ------------------------------------------------------------
-# PLAYER DETECTION (full names, nicknames, logged-in user)
-# ------------------------------------------------------------
-def extract_players(question: str):
-    q = f" {question.lower()} "
-    matched = []
+def parse_query(question: str, players_list, teams_list, courses_list, logged_in_player=None):
+    """
+    Final GOAM AI Query Parser
+    - Detects identity questions
+    - Detects player, team, course references
+    - Routes to correct action
+    - Avoids accidental compare_trends triggers
+    """
 
-    if "players" not in st.session_state:
-        return matched
+    q = question.lower().strip()
 
-    players_data = st.session_state["players"]
-
-    # Logged-in user
-    logged_email = st.session_state.get("email", "").lower()
-    logged_player = None
-
-    for p in players_data:
-        if p.get("email", "").lower() == logged_email:
-            logged_player = p.get("name")
-            break
-
-    # Pronoun-based self reference
-    if logged_player:
-        if any(w in q for w in [" me ", " my ", " myself ", " i "]):
-            matched.append(logged_player)
-
-    # Explicit names / nicknames
-    for p in players_data:
-        full = p.get("name", "")
-        nicks = [
-            p.get("Nick1", ""),
-            p.get("Nick2", ""),
-            p.get("Nick3", ""),
-            p.get("Nick4", "")
-        ]
-
-        tokens = [full.lower()] + [n.lower() for n in nicks if n]
-
-        if any(t and t in q for t in tokens):
-            if full not in matched:
-                matched.append(full)
-
-    return matched
-
-
-# ------------------------------------------------------------
-# TEAM DETECTION
-# ------------------------------------------------------------
-def extract_team(question: str):
-    q = question.lower()
-
-    if "players" not in st.session_state:
-        return None
-
-    teams = set(p.get("team", "") for p in st.session_state["players"])
-    teams = [t for t in teams if t]
-
-    for t in teams:
-        if t.lower() in q:
-            return t
-
-    return None
-
-
-# ------------------------------------------------------------
-# COURSE DETECTION
-# ------------------------------------------------------------
-def extract_course(question: str):
-    q = question.lower()
-
-    known_courses = [
-        "akasia",
-        "pgc",
-        "kyalami",
-        "copperleaf",
-        "silver lakes",
-        "centurion",
-        "services",
-    ]
-
-    for c in known_courses:
-        if c.lower() in q:
-            return c.title()
-
-    return None
-
-
-# ------------------------------------------------------------
-# MAIN PARSER
-# ------------------------------------------------------------
-def parse_query(question: str):
-    q = question.lower()
-    # --------------------------------------------------------
-    # IDENTITY QUESTIONS ("Who am I", "What is my name")
-    # --------------------------------------------------------
-    if any(phrase in q for phrase in ["who am i", "what is my name", "who is logged in"]):
-        logged_email = st.session_state.get("email", "").lower()
-        players = st.session_state.get("players", [])
-
-        for p in players:
-            if p.get("email", "").lower() == logged_email:
-                return {
-                    "action": "identity",
-                    "player": p.get("name")
-                }
-
+    # ------------------------------------------------------------
+    # 1. IDENTITY HANDLER
+    # ------------------------------------------------------------
+    if any(x in q for x in ["who am i", "my name", "who is me", "what is my name"]):
         return {
             "action": "identity",
-            "player": None
+            "player": logged_in_player
         }
 
-    players = extract_players(question)
-    team = extract_team(question)
-    course = extract_course(question)
+    # ------------------------------------------------------------
+    # 2. PLAYER DETECTION
+    # ------------------------------------------------------------
+    matched_players = []
 
-    # --------------------------------------------------------
-    # 1. Compare trends (ONLY if exactly 2 players)
-    # --------------------------------------------------------
-    if ("compare" in q or " vs " in q or " versus " in q) and len(players) == 2:
-        return {
-            "action": "compare_trends",
-            "players": players,
-            "team": team,
-            "course": course,
-        }
+    # Pronouns → logged-in player
+    if logged_in_player:
+        if any(x in q.split() for x in ["me", "my", "i"]):
+            matched_players.append(logged_in_player)
 
-    # --------------------------------------------------------
-    # 2. Single-player trend / trajectory
-    # --------------------------------------------------------
-    if any(w in q for w in ["trend", "trajectory", "improving", "progress"]):
-        if len(players) == 1:
-            return {
-                "action": "plot_trajectory",
-                "player": players[0],
-                "team": team,
-                "course": course,
-            }
+    # Explicit player name detection
+    for p in players_list:
+        if p.lower() in q:
+            matched_players.append(p)
 
-    # --------------------------------------------------------
-    # 3. Team summary
-    # --------------------------------------------------------
-    if team:
+    matched_players = list(dict.fromkeys(matched_players))  # dedupe
+
+    # ------------------------------------------------------------
+    # 3. TEAM DETECTION
+    # ------------------------------------------------------------
+    matched_team = None
+    for t in teams_list:
+        if t.lower() in q:
+            matched_team = t
+            break
+
+    # ------------------------------------------------------------
+    # 4. COURSE DETECTION
+    # ------------------------------------------------------------
+    matched_course = None
+    for c in courses_list:
+        if c.lower() in q:
+            matched_course = c
+            break
+
+    # ------------------------------------------------------------
+    # 5. ACTION ROUTING
+    # ------------------------------------------------------------
+
+    # TEAM SUMMARY
+    if matched_team and "compare" not in q:
         return {
             "action": "summarize_team",
-            "team": team,
-            "course": course,
+            "team": matched_team
         }
 
-    # --------------------------------------------------------
-    # 4. Course summary
-    # --------------------------------------------------------
-    if course:
+    # COURSE SUMMARY
+    if matched_course and "compare" not in q:
         return {
             "action": "summarize_course",
-            "course": course,
+            "course": matched_course
         }
 
-    # --------------------------------------------------------
-    # 5. Single-player summary
-    # --------------------------------------------------------
-    if len(players) == 1:
+    # COMPARE PLAYERS
+    if ("compare" in q or "vs" in q or "versus" in q) and len(matched_players) == 2:
+        return {
+            "action": "compare_players",
+            "players": matched_players,
+            "metric": "ips"
+        }
+
+    # COMPARE TRENDS
+    if "trend" in q and len(matched_players) == 2:
+        return {
+            "action": "compare_trends",
+            "players": matched_players,
+            "metric": "ips",
+            "window": 3
+        }
+
+    # TRAJECTORY
+    if any(x in q for x in ["trajectory", "progress", "improving", "history"]) and len(matched_players) == 1:
+        return {
+            "action": "plot_trajectory",
+            "player": matched_players[0],
+            "metric": "ips"
+        }
+
+    # PREDICT NEXT
+    if any(x in q for x in ["predict", "next round", "next score"]) and len(matched_players) == 1:
+        return {
+            "action": "predict_next",
+            "player": matched_players[0],
+            "metric": "ips"
+        }
+
+    # PLAYER SUMMARY
+    if len(matched_players) == 1:
         return {
             "action": "summarize_player",
-            "player": players[0],
-            "team": team,
-            "course": course,
+            "player": matched_players[0]
         }
 
-    # --------------------------------------------------------
-    # 6. Fallback
-    # --------------------------------------------------------
+    # ------------------------------------------------------------
+    # 6. FALLBACK
+    # ------------------------------------------------------------
     return {
-        "action": "general_question",
-        "query": question,
+        "action": "unknown",
+        "query": question
     }
-
