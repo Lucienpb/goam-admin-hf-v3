@@ -1,26 +1,23 @@
 import pandas as pd
 
-def compare_players(df: pd.DataFrame, players: list[str], metric: str) -> dict:
+def compare_players(df, players: list, metric="ips"):
     if len(players) != 2:
-        return {"error": "compare_players requires exactly two players"}
+        return {"error": "compare_players requires exactly 2 players"}
 
     p1, p2 = players
-
-    if metric not in df.columns:
-        return {"error": f"Unknown metric: {metric}"}
-
-    d1 = df[df["player"] == p1][metric]
-    d2 = df[df["player"] == p2][metric]
+    d1 = df[df["name"] == p1]
+    d2 = df[df["name"] == p2]
 
     if d1.empty or d2.empty:
-        return {"error": "No data for one or both players"}
+        return {"error": "One or both players have no data"}
 
     return {
-        "action": "compare_players",
+        "players": players,
         "metric": metric,
-        "player_1": p1,
-        "player_2": p2,
-        "player_1_avg": float(d1.mean()),
-        "player_2_avg": float(d2.mean()),
-        "difference": float(d1.mean() - d2.mean()),
+        "p1_avg": float(d1[metric].mean()),
+        "p2_avg": float(d2[metric].mean()),
+        "p1_best": float(d1[metric].max()),
+        "p2_best": float(d2[metric].max()),
+        "p1_worst": float(d1[metric].min()),
+        "p2_worst": float(d2[metric].min()),
     }
