@@ -184,6 +184,10 @@ def show_login_page():
         st.session_state.email = email
         st.session_state.role = role
         st.session_state.login_time = datetime.now()
-
+        # Find the matching player name
+        for user_email, user_data in users.items():
+            if user_email.lower() == email.lower():
+                st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
+                break
 
     st.rerun()
