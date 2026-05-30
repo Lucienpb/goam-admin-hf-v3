@@ -1,17 +1,16 @@
 import pandas as pd
 
-def predict_next(df: pd.DataFrame, player: str, metric: str, window: int = 3):
-    data = df[df["player"] == player].sort_values("month")
-    series = data[metric].tail(window)
+def predict_next(df, player: str, metric="ips", window=3):
+    pdf = df[df["name"] == player].sort_values("date")
 
-    if series.empty:
-        return {"error": "Not enough data"}
+    if len(pdf) < window:
+        return {"error": "Not enough rounds to predict"}
 
-    prediction = float(series.mean())
+    recent = pdf[metric].tail(window).mean()
 
     return {
-        "action": "predict_next",
         "player": player,
         "metric": metric,
-        "predicted_value": prediction,
+        "window": window,
+        "predicted_next": float(recent),
     }
