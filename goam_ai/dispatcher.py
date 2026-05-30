@@ -1,25 +1,25 @@
 from goam_ai.actions import (
-    compare_players,
-    plot_trajectory,
-    compare_trends,
-    predict_next,
     summarize_player,
     summarize_team,
     summarize_course,
+    compare_players,
+    compare_trends,
+    plot_trajectory,
+    predict_next,
 )
 
 def dispatch(df, instruction: dict):
     action = instruction.get("action")
 
     # --------------------------------------------------------
-    # IDENTITY HANDLER ("Who am I")
+    # IDENTITY HANDLER
     # --------------------------------------------------------
     if action == "identity":
         player = instruction.get("player")
         if player:
             return {"text": f"You are {player}."}
         else:
-            return {"text": "I couldn't match your login to a GOAM player."}
+            return {"text": "I could not match your login to a GOAM player."}
 
     # --------------------------------------------------------
     # PLAYER SUMMARY
@@ -59,17 +59,6 @@ def dispatch(df, instruction: dict):
         )
 
     # --------------------------------------------------------
-    # TRAJECTORY
-    # --------------------------------------------------------
-    if action == "plot_trajectory":
-        return plot_trajectory(
-            df=df,
-            player=instruction.get("player", ""),
-            metric=instruction.get("metric", "ips"),
-            rounds=instruction.get("rounds"),
-        )
-
-    # --------------------------------------------------------
     # COMPARE TRENDS
     # --------------------------------------------------------
     if action == "compare_trends":
@@ -78,6 +67,17 @@ def dispatch(df, instruction: dict):
             players=instruction.get("players", []),
             metric=instruction.get("metric", "ips"),
             window=instruction.get("window", 3),
+        )
+
+    # --------------------------------------------------------
+    # TRAJECTORY
+    # --------------------------------------------------------
+    if action == "plot_trajectory":
+        return plot_trajectory(
+            df=df,
+            player=instruction.get("player", ""),
+            metric=instruction.get("metric", "ips"),
+            rounds=instruction.get("rounds"),
         )
 
     # --------------------------------------------------------
