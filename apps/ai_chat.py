@@ -75,6 +75,7 @@ def run():
         with st.spinner("Thinking…"):
             # 1) Convert question → structured action
             # Build lists for the parser
+            st.write("COLUMNS:", df.columns.tolist())
             players_list = sorted(df["Name"].dropna().unique().tolist())
             teams_list = sorted(df["Team"].dropna().unique().tolist())
             courses_list = sorted(df["Course"].dropna().unique().tolist())
