@@ -173,6 +173,8 @@ def show_login_page():
             st.session_state["scores_df"] = json_to_df(st.session_state["goam_scores"])
         except Exception as e:
             st.error(f"Failed to build scores_df: {e}")
+    else:
+        st.error("goam_scores not found in session_state")
     
     st.rerun()
 
