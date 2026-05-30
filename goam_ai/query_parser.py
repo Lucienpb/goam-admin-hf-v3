@@ -32,7 +32,14 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
 
     # Explicit player name detection
     for p in players_list:
+        # full match
         if p.lower() in q:
+            matched_players.append(p)
+            continue
+    
+        # partial match (first name, last name, nickname)
+        tokens = p.lower().split()
+        if any(t in q for t in tokens):
             matched_players.append(p)
 
     matched_players = list(dict.fromkeys(matched_players))  # dedupe
