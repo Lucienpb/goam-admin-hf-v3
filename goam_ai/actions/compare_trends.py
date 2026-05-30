@@ -10,21 +10,26 @@ def _slope(series: pd.Series) -> float:
     m, _ = np.linalg.lstsq(A, y, rcond=None)[0]
     return float(m)
 
-def compare_trends(df: pd.DataFrame, players: list[str], metric: str, window: int = 3):
+def compare_trends(df, players: list, metric="ips", window=3):
     if len(players) != 2:
-        return {"error": "compare_trends requires exactly two players"}
+        return {"error": "compare_trends requires exactly 2 players"}
 
     p1, p2 = players
+    d1 = df[df["name"] == p1].sort_values("date")
+    d2 = df[df["name"] == p2].sort_values("date")
 
-    result = {"action": "compare_trends", "metric": metric}
+    if len(d1) < window or len(d2) < window:
+        return {"error": "Not enough rounds to compute trends"}
 
-    trends = {}
-    for p in players:
-        data = df[df["player"] == p].sort_values("month")
-        series = data[metric].tail(window)
-        trends[p] = _slope(series) if not series.empty else 0.0
+    t1 = float(d1[metric].tail(window).mean())
+    t2 = float(d2[metric].tail(window).mean())
 
-    result["trends"] = trends
-    result["most_improving"] = min(trends, key=trends.get)  # lower IPS slope = improving
+    return {
+        "players": players,
+        "metric": metric,
+        "window": window,
+        "p1_trend": t1,
+        "p2_trend": t2,
+        "trend_diff": t1 - t2,
+    }
 
-    return result
