@@ -1,7 +1,7 @@
 import pandas as pd
 
 def plot_trajectory(df, player: str, metric="ips", rounds=None):
-    pdf = df[df["name"] == player].sort_values("date")
+    pdf = df[df["player"] == player].sort_values("month")
 
     if pdf.empty:
         return {"error": f"No data for {player}"}
@@ -12,6 +12,7 @@ def plot_trajectory(df, player: str, metric="ips", rounds=None):
     return {
         "player": player,
         "metric": metric,
-        "dates": pdf["date"].astype(str).tolist(),
+        "months": pdf["month"].tolist(),
         "values": [float(v) for v in pdf[metric].tolist()],
     }
+
