@@ -146,25 +146,25 @@ def show_login_page():
         return
 
     # --- SUCCESS ---
-record_successful_login(email_norm)
-
-st.success("Login successful!")
-
-# Load GitHub data (your existing code stays unchanged)
-
-# ------------------------------------------------------------
-# FINAL SUCCESS BLOCK — CORRECTED
-# ------------------------------------------------------------
-st.session_state.authenticated = True
-st.session_state.email = email_norm
-st.session_state.role = user.get("role", "member")
-st.session_state.login_time = datetime.now()
-
-# Set logged-in player name for AI Chat
-users = load_users()
-for user_email, user_data in users.items():
-    if user_email.lower() == email_norm.lower():
-        st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
-        break
-
-st.rerun()
+    record_successful_login(email_norm)
+    
+    st.success("Login successful!")
+    
+    # Load GitHub data (your existing code stays unchanged)
+    
+    # ------------------------------------------------------------
+    # FINAL SUCCESS BLOCK — CORRECTED
+    # ------------------------------------------------------------
+    st.session_state.authenticated = True
+    st.session_state.email = email_norm
+    st.session_state.role = user.get("role", "member")
+    st.session_state.login_time = datetime.now()
+    
+    # Set logged-in player name for AI Chat
+    users = load_users()
+    for user_email, user_data in users.items():
+        if user_email.lower() == email_norm.lower():
+            st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
+            break
+    
+    st.rerun()
