@@ -74,7 +74,18 @@ def run():
 
         with st.spinner("Thinking…"):
             # 1) Convert question → structured action
-            instruction = parse_query(question)
+            # Build lists for the parser
+            players_list = sorted(df["Name"].dropna().unique().tolist())
+            teams_list = sorted(df["Team"].dropna().unique().tolist())
+            courses_list = sorted(df["Course"].dropna().unique().tolist())
+            
+            # Parse the question
+            instruction = parse_query(
+                question,
+                players_list=players_list,
+                teams_list=teams_list,
+                courses_list=courses_list
+            )
 
             # 2) Run the action on your real GOAM data
             action_result = dispatch(df, instruction)
