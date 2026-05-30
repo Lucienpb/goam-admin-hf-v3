@@ -5,7 +5,7 @@ import textwrap
 from utils.rag_engine import retrieve_context
 from goam_ai.query_parser import parse_query
 from goam_ai.dispatcher import dispatch
-from goam_ai.llm_client import generate
+from goam_ai.llm_client import call_llm
 
 
 SYSTEM_PROMPT = """
@@ -86,7 +86,7 @@ def run():
             prompt = build_answer_prompt(question, context, action_result)
 
             # 5) Generate natural language answer
-            answer = generate(prompt, max_new_tokens=400, temperature=0.3)
+            answer = call_llm(prompt, max_new_tokens=400, temperature=0.3)
 
         # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
