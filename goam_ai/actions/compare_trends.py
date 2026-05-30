@@ -15,8 +15,10 @@ def compare_trends(df, players: list, metric="ips", window=3):
         return {"error": "compare_trends requires exactly 2 players"}
 
     p1, p2 = players
-    d1 = df[df["name"] == p1].sort_values("date")
-    d2 = df[df["name"] == p2].sort_values("date")
+
+    # Sort by month string (Feb'26, Mar'26, etc.)
+    d1 = df[df["player"] == p1].sort_values("month")
+    d2 = df[df["player"] == p2].sort_values("month")
 
     if len(d1) < window or len(d2) < window:
         return {"error": "Not enough rounds to compute trends"}
@@ -32,4 +34,5 @@ def compare_trends(df, players: list, metric="ips", window=3):
         "p2_trend": t2,
         "trend_diff": t1 - t2,
     }
+
 
