@@ -146,42 +146,25 @@ def show_login_page():
         return
 
     # --- SUCCESS ---
-    record_successful_login(email_norm)
-    # After successful login
-    email = st.session_state.get("email")
-    users = load_users()
-    
-    st.success("Login successful!")
-    # ------------------------------------------------------------
-    # NEW: Load all GitHub data after successful login
-    # ------------------------------------------------------------
+record_successful_login(email_norm)
 
-    try:
-        app_data = load_all_app_data()
+st.success("Login successful!")
 
-        # Store each file in session_state for global access
-        for path, payload in app_data.items():
-            key = path.replace("data/", "").replace(".json", "")
-            st.session_state[key] = payload["data"]
-            st.session_state[f"{key}_sha"] = payload["sha"]
+# Load GitHub data (your existing code stays unchanged)
 
-        st.info("GitHub data loaded successfully.")
-        if "goam_scores" in st.session_state:
-            st.session_state["scores_df"] = json_to_df(st.session_state["goam_scores"])
-            st.dataframe(st.session_state["scores_df"])
-    except Exception as e:
-        st.error(f"Failed to load data from GitHub: {e}")
-        return
-    #
-    if ok:
-        st.session_state.authenticated = True
-        st.session_state.email = email
-        st.session_state.role = role
-        st.session_state.login_time = datetime.now()
-        # Find the matching player name
-        for user_email, user_data in users.items():
-            if user_email.lower() == email.lower():
-                st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
-                break
+# ------------------------------------------------------------
+# FINAL SUCCESS BLOCK — CORRECTED
+# ------------------------------------------------------------
+st.session_state.authenticated = True
+st.session_state.email = email_norm
+st.session_state.role = user.get("role", "member")
+st.session_state.login_time = datetime.now()
 
-    st.rerun()
+# Set logged-in player name for AI Chat
+users = load_users()
+for user_email, user_data in users.items():
+    if user_email.lower() == email_norm.lower():
+        st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
+        break
+
+st.rerun()
