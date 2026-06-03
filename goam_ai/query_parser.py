@@ -63,10 +63,10 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
         if p.lower() in q:
             matched_players.append(p)
             continue
-    
-        # partial match (first name, last name, nickname)
+
+        # partial match (first name, last name) — whole word only
         tokens = p.lower().split()
-        if any(t in q for t in tokens):
+        if any(re.search(rf"\b{re.escape(t)}\b", q) for t in tokens):
             matched_players.append(p)
     
     # Check nicknames in question
