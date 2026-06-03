@@ -14,7 +14,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from auth.auth import load_users, verify_password, USERS_FILE
+from auth.auth import load_users, verify_password, USERS_FILE, get_player_name_from_email
 
 from utils.github_storage import load_all_app_data
 
@@ -153,28 +153,16 @@ def show_login_page():
     # Load GitHub data (your existing code stays unchanged)
     
     # ------------------------------------------------------------
-    # FINAL SUCCESS BLOCK — CORRECTED
+    # FINAL SUCCESS BLOCK — SET SESSION STATE
     # ------------------------------------------------------------
     st.session_state.authenticated = True
     st.session_state.email = email_norm
     st.session_state.role = user.get("role", "member")
     st.session_state.login_time = datetime.now()
     
-    # Set logged-in player name for AI Chat
-    users = load_users()
-    for user_email, user_data in users.items():
-        if user_email.lower() == email_norm.lower():
-            st.session_state["player_name"] = user_data.get("name") or user_data.get("player")
-            break
-    
-    # Build scores_df for AI Chat
-    if "goam_scores" in st.session_state:
-        try:
-            st.session_state["scores_df"] = json_to_df(st.session_state["goam_scores"])
-        except Exception as e:
-            st.error(f"Failed to build scores_df: {e}")
-    else:
-        st.error("goam_scores not found in session_state")
+    # Get player name for AI Chat (from players.json or user.json)
+    player_name = get_player_name_from_email(email_norm)
+    st.session_state["player_name"] = player_name
     
     st.rerun()
 
