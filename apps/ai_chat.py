@@ -135,7 +135,7 @@ def run():
 
         # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
-        
+
         # DEBUG: Show dispatcher output
         st.divider()
         with st.expander("🔍 Debug Info - Dispatcher Output"):
