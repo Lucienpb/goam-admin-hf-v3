@@ -17,7 +17,9 @@ def dispatch(df, instruction: dict):
     # --------------------------------------------------------
     if action == "identity":
         player = instruction.get("player")
-        if player:
+        if player == "Goami":
+            return {"text": "I am Goami, your GOAM golf analytics assistant!"}
+        elif player:
             return {"text": f"You are {player}."}
         else:
             return {"text": "I could not match your login to a GOAM player."}
