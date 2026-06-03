@@ -29,3 +29,4 @@ def player_monthly_scores(df, player: str):
         "best_ips": int(pdf["ips"].max()),
         "worst_ips": int(pdf["ips"].min())
     }
+#
