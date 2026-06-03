@@ -15,6 +15,7 @@ from email.mime.multipart import MIMEMultipart
 from typing import Optional, Dict, Tuple
 import bcrypt
 
+
 # ========================================================================
 # CONFIGURATION
 # ========================================================================
@@ -289,7 +290,6 @@ def verify_user_email(email: str) -> bool:
     users = load_users()
 
     if email not in users:
-        st.write("Current users dict:", users)
         return False
 
     users[email]["verified"] = True
