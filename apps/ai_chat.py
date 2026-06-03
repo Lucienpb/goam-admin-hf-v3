@@ -22,7 +22,6 @@ Rules:
 - Always explain IPS, strokes, nett in simple terms.
 - If action_result contains an error, explain it politely.
 """
-logged_in_player = st.session_state.get("player_name")
 
 def build_answer_prompt(question: str, context_chunks: list[str], action_result: dict | None) -> str:
     context_block = "\n".join(context_chunks)
@@ -52,6 +51,14 @@ def run():
     # Chat history
     if "goam_chat" not in st.session_state:
         st.session_state.goam_chat = []
+
+    # Get logged-in player from authenticated email
+    logged_in_email = st.session_state.get("email")
+    logged_in_player = None
+    
+    if logged_in_email:
+        # Try to extract player name from email (before @)
+        logged_in_player = logged_in_email.split("@")[0]
 
     # Load scores DataFrame from GOAM data
     try:
