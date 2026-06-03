@@ -6,6 +6,8 @@ from utils.rag_engine import retrieve_context
 from goam_ai.query_parser import parse_query
 from goam_ai.dispatcher import dispatch
 from goam_ai.llm_client import call_llm
+from backend.goam_loader import GOAMLoader
+from backend.goam_calculator import GOAMCalculator
 
 
 SYSTEM_PROMPT = """
@@ -51,11 +53,16 @@ def run():
     if "goam_chat" not in st.session_state:
         st.session_state.goam_chat = []
 
-    # Load scores DataFrame (must be set in session_state by your main app)
-    df: pd.DataFrame = st.session_state.get("scores_df")
-    
-    if df is None:
-        st.error("GOAM scores DataFrame not loaded. Make sure you set st.session_state['scores_df'].")
+    # Load scores DataFrame from GOAM data
+    try:
+        goam_scores = GOAMLoader.load_json_scores("data/goam_scores.json")
+        df = GOAMCalculator.build_from_json(goam_scores)
+        
+        if df is None or df.empty:
+            st.error("No GOAM scores found. Please load data via the Data Manager.")
+            return
+    except Exception as e:
+        st.error(f"Error loading GOAM scores: {e}")
         return
 
     # Display chat history
