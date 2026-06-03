@@ -26,6 +26,8 @@ def _load_nicknames():
         return {}
 
 NICKNAME_MAP = _load_nicknames()
+
+def parse_query(question: str, players_list, teams_list, courses_list, logged_in_player=None):
     """
     Final GOAM AI Query Parser
     - Detects identity questions
