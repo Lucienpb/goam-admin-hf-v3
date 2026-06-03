@@ -52,13 +52,12 @@ def run():
     if "goam_chat" not in st.session_state:
         st.session_state.goam_chat = []
 
-    # Get logged-in player from authenticated email
-    logged_in_email = st.session_state.get("email")
-    logged_in_player = None
+    # Get logged-in player from session state (set during login)
+    logged_in_player = st.session_state.get("player_name")
     
-    if logged_in_email:
-        # Try to extract player name from email (before @)
-        logged_in_player = logged_in_email.split("@")[0]
+    if not logged_in_player:
+        st.warning("Player name not found in session. Please login again.")
+        return
 
     # Load scores DataFrame from GOAM data
     try:
