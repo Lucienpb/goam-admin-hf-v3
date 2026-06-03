@@ -113,7 +113,7 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
         }
 
     # COMPARE PLAYERS
-    if ("compare" in q or "vs" in q or "versus" in q) and len(matched_players) == 2:
+    if ("compare" in q or "vs" in q or "versus" in q) and len(matched_players) >= 2:
         return {
             "action": "compare_players",
             "players": matched_players,
