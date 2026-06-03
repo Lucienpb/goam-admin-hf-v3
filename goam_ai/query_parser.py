@@ -41,6 +41,12 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
     # ------------------------------------------------------------
     # 1. IDENTITY HANDLER
     # ------------------------------------------------------------
+    if any(x in q for x in ["who are you", "what is your name", "your name"]):
+        return {
+            "action": "identity",
+            "player": "Goami"
+        }
+
     if any(x in q for x in ["who am i", "my name", "who is me", "what is my name"]):
         return {
             "action": "identity",
