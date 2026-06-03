@@ -75,29 +75,32 @@ def get_player_name_from_email(email: str) -> Optional[str]:
     
     # Then try to match in players.json
     try:
-        if not PLAYERS_FILE.exists():
+        players_path = Path(__file__).parent.parent / "data" / "players.json"
+        if not players_path.exists():
             return None
 
-        players_data = json.loads(PLAYERS_FILE.read_text())
+        players_data = json.loads(players_path.read_text())
 
+        # First: direct email match
+        for player in players_data:
+            if player.get("email", "").strip().lower() == email_norm:
+                return player.get("name")
+
+        # Fallback: prefix matching
         email_prefix = email_norm.split("@")[0].lower()
-
         for player in players_data:
             full_name = player.get("name", "")
             name_tokens = full_name.lower().split()
-
-            # Match if any name token starts with the email prefix or vice versa
             if any(email_prefix.startswith(t) or t.startswith(email_prefix) for t in name_tokens):
                 return full_name
-
-            # Also check nicknames
             for i in range(1, 5):
                 nick = player.get(f"Nick{i}", "").strip().lower()
                 if nick and (email_prefix.startswith(nick) or nick.startswith(email_prefix)):
                     return full_name
 
         return None
-    except Exception:
+    except Exception as e:
+        logger.error(f"get_player_name_from_email failed for {email_norm}: {e}")
         return None
 
 # ========================================================================
