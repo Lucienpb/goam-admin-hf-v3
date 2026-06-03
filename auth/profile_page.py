@@ -22,76 +22,41 @@ PHOTO_DIR = "data/profile_photos"
 # ---------------------------------------------------------
 # LOAD USER STATS FROM GOAM SCORES
 # ---------------------------------------------------------
-def _load_user_stats(email: str):
+def _load_user_stats(player_name: str):
     try:
-        goam_scores = st.session_state.get("goam_scores", {})
-        players = st.session_state.get("players", [])
+        from backend.goam_loader import GOAMLoader
+        goam_scores = GOAMLoader.load_json_scores("data/goam_scores.json")
         season_df = GOAMCalculator.build_from_json(goam_scores)
     except Exception:
         return None
 
-    if season_df.empty or not players:
+    if season_df.empty or not player_name:
         return None
 
-    # Find player by email
-    player = next(
-        (p for p in players if p.get("email", "").lower() == email.lower()),
-        None,
-    )
-    if not player:
-        return None
-
-    player_name = player.get("name")
-    if not player_name:
-        return None
-
-    # Auto-detect course column
-    course_col = None
-    for col in season_df.columns:
-        if col.strip().lower() == "course":
-            course_col = col
-            break
-
-    if not course_col:
-        return None
-
-    # Exclude Services (June)
-    season_df = season_df[
-        season_df[course_col].astype(str).str.strip().str.lower() != "services"
-    ]
-
-    # All rounds for this player
+    # Filter by player name
     user_rounds = season_df[season_df["Name"].str.lower() == player_name.lower()]
     if user_rounds.empty:
         return None
 
     # Basic stats
-    avg_ips = round(user_rounds["IPS"].mean(), 0)
-    avg_strokes = round(user_rounds["Strokes"].mean(), 0)
+    avg_ips = round(user_rounds["IPS"].mean(), 1)
+    avg_strokes = round(user_rounds["Strokes"].mean(), 1)
     games_played = len(user_rounds)
 
-    # Games won (highest IPS per course)
-    games_won = 0
-    for course, group in season_df.groupby(course_col):
-        winner = group.loc[group["IPS"].idxmax()]
-        if winner["Name"].strip().lower() == player_name.strip().lower():
-            games_won += 1
+    # Games won (highest IPS per round)
+    games_won = sum(user_rounds["IPS"] == user_rounds.groupby("Course")["IPS"].transform("max"))
 
-    # OX Nau count (lowest IPS per course)
-    ox_count = 0
-    for course, group in season_df.groupby(course_col):
-        ox = group.loc[group["IPS"].idxmin()]
-        if ox["Name"].strip().lower() == player_name.strip().lower():
-            ox_count += 1
+    # OX Nau count (lowest IPS per round)
+    ox_count = sum(user_rounds["IPS"] == user_rounds.groupby("Course")["IPS"].transform("min"))
 
-    # Log position (by total IPS)
+    # Log position (by total IPS across season)
     leaderboard = (
         season_df.groupby("Name")["IPS"]
         .sum()
         .sort_values(ascending=False)
         .reset_index()
     )
-    leaderboard["Position"] = leaderboard.index + 1
+    leaderboard["Position"] = range(1, len(leaderboard) + 1)
 
     row = leaderboard[leaderboard["Name"].str.lower() == player_name.lower()]
     log_position = int(row["Position"].iloc[0]) if not row.empty else None
@@ -103,9 +68,6 @@ def _load_user_stats(email: str):
         "games_won": games_won,
         "ox_count": ox_count,
         "log_position": log_position,
-        "membership": player.get("membership"),
-        "team": player.get("team"),
-        "handicap_index": player.get("handicap_index"),
     }
 
 
@@ -149,15 +111,15 @@ def show_profile_page(email: str):
     # ====================================================================
     st.subheader("📊 My GOAM Stats")
 
-    stats = _load_user_stats(email_norm)
+    # Get player name from session state (set during login)
+    player_name = st.session_state.get("player_name")
+    
+    if player_name:
+        stats = _load_user_stats(player_name)
 
-    if stats:
-        st.markdown(
-            f"""
-🏌️ **Membership:** {stats['membership']}  
-📏 **Handicap Index Cap:** {stats['handicap_index']}
-🏌️‍♂️ **LIV Team:** {stats['team']}
-
+        if stats:
+            st.markdown(
+                f"""
 📊 **IPS: Avg.** {stats['avg_ips']}  
 📉 **Strokes: Avg.** {stats['avg_strokes']}  
 🎯 **Games Played:** {stats['games_played']}  
@@ -165,9 +127,11 @@ def show_profile_page(email: str):
 📈 **Log Position:** {stats['log_position']}  
 🐂 **OX Nau:** {stats['ox_count']}
 """
-        )
+            )
+        else:
+            st.info("No GOAM rounds found for your profile yet.")
     else:
-        st.info("No GOAM rounds found for your profile yet.")
+        st.warning("Player name not found. Please login again.")
 
     st.markdown("---")
 
