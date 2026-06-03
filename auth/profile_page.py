@@ -133,6 +133,14 @@ def show_profile_page(email: str):
     else:
         st.warning("Player name not found. Please login again.")
 
+    # DEBUG
+    with st.expander("🔍 Debug - Player Session Info"):
+        st.json({
+            "email": st.session_state.get("email"),
+            "player_name": st.session_state.get("player_name"),
+            "role": st.session_state.get("role"),
+        })
+
     st.markdown("---")
 
     # ====================================================================
