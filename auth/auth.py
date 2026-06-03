@@ -20,6 +20,7 @@ import bcrypt
 # ========================================================================
 BASE_DIR = Path(__file__).parent.parent
 USERS_FILE = BASE_DIR / "data" / "user.json"
+PLAYERS_FILE = BASE_DIR / "data" / "players.json"
 AUDIT_LOG_FILE = BASE_DIR / "logs" / "auth_audit.log"
 TOKEN_STORE_FILE = BASE_DIR / "data" / "tokens.json"
 
@@ -53,6 +54,45 @@ def normalize_email(email: str) -> str:
 def validate_email(email: str) -> bool:
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return re.match(pattern, email) is not None
+
+# ========================================================================
+# PLAYER NAME MAPPING (email → player name from players.json)
+# ========================================================================
+
+def get_player_name_from_email(email: str) -> Optional[str]:
+    """
+    Map email to player name from players.json by matching user info.
+    Falls back to user.json name field if available.
+    Returns None if no player found.
+    """
+    email_norm = normalize_email(email)
+    
+    # First, check if user.json has a name field
+    users = load_users_raw()
+    if email_norm in users and users[email_norm].get("name"):
+        return users[email_norm]["name"]
+    
+    # Then try to match in players.json
+    try:
+        if not PLAYERS_FILE.exists():
+            return None
+        
+        players_data = json.loads(PLAYERS_FILE.read_text())
+        
+        # Build a map of lowercase name → full name for fuzzy matching
+        for player in players_data:
+            player_name = player.get("name", "").lower()
+            
+            # Try matching by first name (email prefix)
+            email_prefix = email_norm.split("@")[0].lower()
+            
+            # Match if email prefix is in player name
+            if email_prefix in player_name or player_name.startswith(email_prefix):
+                return player.get("name")
+        
+        return None
+    except Exception:
+        return None
 
 # ========================================================================
 # USER STORAGE (LOCAL ONLY — GitHub sync handled elsewhere)
