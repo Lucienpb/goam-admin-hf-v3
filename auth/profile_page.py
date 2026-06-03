@@ -33,23 +33,20 @@ def _load_user_stats(player_name: str):
     if season_df.empty or not player_name:
         return None
 
-    # Filter by player name
     user_rounds = season_df[season_df["Name"].str.lower() == player_name.lower()]
     if user_rounds.empty:
         return None
 
-    # Basic stats
     avg_ips = round(user_rounds["IPS"].mean(), 1)
     avg_strokes = round(user_rounds["Strokes"].mean(), 1)
     games_played = len(user_rounds)
 
-    # Games won (highest IPS per round)
-    games_won = sum(user_rounds["IPS"] == user_rounds.groupby("Course")["IPS"].transform("max"))
+    course_max = season_df.groupby("Course")["IPS"].transform("max")
+    games_won = int(sum((season_df["Name"].str.lower() == player_name.lower()) & (season_df["IPS"] == course_max)))
 
-    # OX Nau count (lowest IPS per round)
-    ox_count = sum(user_rounds["IPS"] == user_rounds.groupby("Course")["IPS"].transform("min"))
+    course_min = season_df.groupby("Course")["IPS"].transform("min")
+    ox_count = int(sum((season_df["Name"].str.lower() == player_name.lower()) & (season_df["IPS"] == course_min)))
 
-    # Log position (by total IPS across season)
     leaderboard = (
         season_df.groupby("Name")["IPS"]
         .sum()
@@ -95,8 +92,6 @@ def _save_profile_photo(email: str, uploaded_file):
 # MAIN PROFILE PAGE
 # ---------------------------------------------------------
 def show_profile_page(email: str):
-    st.title("👤 My Profile")
-
     users = load_users()
     email_norm = email.strip().lower()
 
@@ -107,11 +102,8 @@ def show_profile_page(email: str):
     user = users[email_norm]
 
     # ====================================================================
-    # PERSONAL GOAM STATS
+    # TITLE — photo + player name if available
     # ====================================================================
-    st.subheader("📊 My GOAM Stats")
-
-    # Get player name from session state (set during login)
     player_name = st.session_state.get("player_name")
 
     if not player_name:
@@ -119,9 +111,44 @@ def show_profile_page(email: str):
         player_name = get_player_name_from_email(email_norm)
         if player_name:
             st.session_state["player_name"] = player_name
-    
+
+    existing_photo = _load_profile_photo(email_norm)
+
+    if existing_photo and player_name:
+        col_photo, col_title = st.columns([1, 6])
+        with col_photo:
+            st.image(existing_photo, width=80)
+        with col_title:
+            st.title(f"Profile of {player_name}")
+    elif player_name:
+        st.title(f"👤 Profile of {player_name}")
+    else:
+        st.title("👤 My Profile")
+
+    # ====================================================================
+    # PERSONAL GOAM STATS
+    # ====================================================================
+    st.subheader("📊 My GOAM Stats")
+
     if player_name:
         stats = _load_user_stats(player_name)
+
+        import json
+        from pathlib import Path
+        players_raw = json.loads(Path("data/players.json").read_text()) if Path("data/players.json").exists() else []
+        player_record = next((p for p in players_raw if p.get("name", "").lower() == player_name.lower()), {})
+
+        membership = player_record.get("membership", "N/A")
+        handicap_index = player_record.get("handicap_index", "N/A")
+        team = player_record.get("team", "N/A")
+
+        st.markdown(
+            f"🏌️ **HNA Membership:** {membership} &nbsp;&nbsp; "
+            f"📏 **Handicap Index Cap:** {handicap_index} &nbsp;&nbsp; "
+            f"🤝 **LIV Team:** {team}",
+            unsafe_allow_html=True
+        )
+        st.markdown("")
 
         if stats:
             st.markdown(
@@ -164,8 +191,6 @@ def show_profile_page(email: str):
     # PROFILE PHOTO
     # ====================================================================
     st.subheader("📸 Profile Photo")
-
-    existing_photo = _load_profile_photo(email_norm)
 
     if existing_photo:
         st.image(existing_photo, width=180)
@@ -211,18 +236,17 @@ def show_profile_page(email: str):
         user["name"] = name
         user["phone"] = phone
         user["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
         users[email_norm] = user
         save_users(users)
-    
+
         try:
-            # Save to GitHub user.json
             save_user_record(email_norm, user)
             st.session_state["users"][email_norm] = user
         except Exception as e:
             st.error(f"Failed to sync profile to GitHub: {e}")
             return
-    
+
         st.success("Profile updated successfully!")
         st.stop()
 
@@ -261,15 +285,12 @@ def show_profile_page(email: str):
             try:
                 updated_users = load_users()
                 updated_user = updated_users[email_norm]
-        
-                # Save to GitHub user.json
-                save_user_record(email_norm,updated_user)
+                save_user_record(email_norm, updated_user)
                 st.session_state["users"][email_norm] = updated_user
-        
             except Exception as e:
                 st.error(f"Password updated locally but failed to sync to GitHub: {e}")
                 return
-        
+
             st.success(msg)
             st.stop()
         else:
