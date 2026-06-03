@@ -126,7 +126,7 @@ def run():
         # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
         
-        # DEBUG: Show dispatcher output AFTER answer is generated
+        # DEBUG: Show dispatcher output
         st.divider()
         with st.expander("🔍 Debug Info - Dispatcher Output"):
             st.json({
@@ -134,8 +134,6 @@ def run():
                 "action_result": action_result
             })
         st.divider()
-        
-        st.rerun()
 
     # Optional: show trajectory chart if last action returned data
     if st.session_state.goam_chat:
