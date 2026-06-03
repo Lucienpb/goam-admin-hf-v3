@@ -68,6 +68,17 @@ def run():
         if df is None or df.empty:
             st.error("No GOAM scores found. Please load data via the Data Manager.")
             return
+        
+        # Rename columns to match dispatcher expectations
+        df = df.rename(columns={
+            "player": "player",
+            "strokes": "strokes",
+            "ips": "ips",
+            "course": "course",
+            "team": "team",
+            "month": "month",
+            "nett": "nett"
+        })
     except Exception as e:
         st.error(f"Error loading GOAM scores: {e}")
         return
@@ -82,15 +93,6 @@ def run():
     st.markdown("---")
 
     question = st.text_input("Ask anything about your GOAM stats…")
-    df = df.rename(columns={
-    "player": "Name",
-    "strokes": "Strokes",
-    "ips": "IPS",
-    "course": "Course",
-    "team": "Team",
-    "month": "Month",
-    "nett": "Nett"
-    })
     if st.button("Ask") and question.strip():
         st.session_state.goam_chat.append(("user", question))
 
@@ -98,9 +100,9 @@ def run():
             # 1) Convert question → structured action
             # Build lists for the parser
 
-            players_list = sorted(df["Name"].dropna().unique().tolist())
-            teams_list = sorted(df["Team"].dropna().unique().tolist())
-            courses_list = sorted(df["Course"].dropna().unique().tolist())
+            players_list = sorted(df["player"].dropna().unique().tolist())
+            teams_list = sorted(df["team"].dropna().unique().tolist())
+            courses_list = sorted(df["course"].dropna().unique().tolist())
             
             # Parse the question
             instruction = parse_query(
