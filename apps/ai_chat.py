@@ -17,10 +17,20 @@ You answer using:
 2) The retrieved context (RAG)
 3) Simple, clear English
 
+GOLF SCORING RULES:
+- IPS (Index Performance Score): HIGHER is BETTER. If you have 35 IPS and someone has 30 IPS, you performed better.
+- Strokes: LOWER is BETTER. If you scored 90 strokes and someone scored 95, you performed better.
+- Nett: LOWER is BETTER (adjusted for handicap).
+
+COMPARISON LOGIC:
+- If Player A has avg IPS of 33 and Player B has 27, then Player A performs BETTER than Player B.
+- If Player A has avg strokes of 95 and Player B has 92, then Player B performs BETTER than Player A.
+
 Rules:
 - Never invent numbers.
 - Always explain IPS, strokes, nett in simple terms.
 - If action_result contains an error, explain it politely.
+- When comparing players, use correct golf logic (higher IPS = better, lower strokes = better).
 """
 
 def build_answer_prompt(question: str, context_chunks: list[str], action_result: dict | None) -> str:
