@@ -294,6 +294,8 @@ if role == "admin":
             st.session_state.page = "admin_users"
         if st.button("Data Manager"):
             st.session_state.page = "admin_data"
+        if st.button("User Data"):
+            st.session_state.page = "admin_user_data"
 
 # AI CHAT GROUP
 with st.sidebar.expander("🤖 AI", expanded=False):
@@ -337,6 +339,10 @@ elif page == "admin_users":
 
 elif page == "admin_data":
     show_data_manager_page()
+
+elif page == "admin_user_data":
+    from admin.user_data_page import show_user_data_page
+    show_user_data_page()
 
 elif page == "ai_chat":
     run_ai_chat()
