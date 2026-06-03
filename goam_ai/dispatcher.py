@@ -7,6 +7,7 @@ from goam_ai.actions import (
     plot_trajectory,
     predict_next,
 )
+from goam_ai.actions.player_monthly_scores import player_monthly_scores
 
 def dispatch(df, instruction: dict):
     action = instruction.get("action")
@@ -26,6 +27,15 @@ def dispatch(df, instruction: dict):
     # --------------------------------------------------------
     if action == "summarize_player":
         return summarize_player(
+            df=df,
+            player=instruction.get("player", "")
+        )
+    
+    # --------------------------------------------------------
+    # PLAYER MONTHLY SCORES (for tables)
+    # --------------------------------------------------------
+    if action == "player_monthly_scores":
+        return player_monthly_scores(
             df=df,
             player=instruction.get("player", "")
         )
