@@ -124,14 +124,18 @@ def run():
             # 2) Run the action on your real GOAM data
             action_result = dispatch(df, instruction)
 
-            # 3) Retrieve RAG context
-            context = retrieve_context(question)
+            # 3) Short-circuit: if action_result has a direct text, use it
+            if "text" in action_result:
+                answer = action_result["text"]
+            else:
+                # 4) Retrieve RAG context
+                context = retrieve_context(question)
 
-            # 4) Build final LLM prompt
-            prompt = build_answer_prompt(question, context, action_result)
+                # 5) Build final LLM prompt
+                prompt = build_answer_prompt(question, context, action_result)
 
-            # 5) Generate natural language answer
-            answer = call_llm(prompt, max_new_tokens=400, temperature=0.3)
+                # 6) Generate natural language answer
+                answer = call_llm(prompt, max_new_tokens=400, temperature=0.3)
 
         # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
