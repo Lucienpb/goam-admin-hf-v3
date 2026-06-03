@@ -233,7 +233,7 @@ with status_placeholder.container():
 # Auto-refresh every 10 seconds, up to 6 times
 if not scraper_awake and st.session_state.scraper_refresh_count < 6:
     st.session_state.scraper_refresh_count += 1
-    st.experimental_rerun(delay=10)
+    st.rerun()
 
 # ========================================================================
 # SIDEBAR NAVIGATION
