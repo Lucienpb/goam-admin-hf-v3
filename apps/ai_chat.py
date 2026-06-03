@@ -69,15 +69,14 @@ def run():
             st.error("No GOAM scores found. Please load data via the Data Manager.")
             return
         
-        # Rename columns to match dispatcher expectations
+        # Rename columns to match dispatcher expectations (lowercase)
         df = df.rename(columns={
-            "player": "player",
-            "strokes": "strokes",
-            "ips": "ips",
-            "course": "course",
-            "team": "team",
-            "month": "month",
-            "nett": "nett"
+            "Name": "player",
+            "Strokes": "strokes",
+            "IPS": "ips",
+            "Course": "course",
+            "Team": "team",
+            "Month": "month",
         })
     except Exception as e:
         st.error(f"Error loading GOAM scores: {e}")
