@@ -11,11 +11,12 @@ bcrypt
 # API calls
 requests
 
+# Hugging Face API
+huggingface_hub>=0.19.0
+
 # Excel handling
 xlrd
 xlsxwriter
 
 # Misc utilities
 python-dateutil
-
-llama-cpp-python==0.2.56
