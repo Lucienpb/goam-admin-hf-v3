@@ -113,6 +113,13 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
             "metric": "ips"
         }
 
+    # PLAYER MONTHLY SCORES (for tables/full year data)
+    if any(x in q for x in ["table", "scores", "all my", "entire year", "breakdown", "each round"]) and len(matched_players) == 1:
+        return {
+            "action": "player_monthly_scores",
+            "player": matched_players[0]
+        }
+
     # PLAYER SUMMARY
     if len(matched_players) == 1:
         return {
