@@ -113,6 +113,12 @@ def show_profile_page(email: str):
 
     # Get player name from session state (set during login)
     player_name = st.session_state.get("player_name")
+
+    if not player_name:
+        from auth.auth import get_player_name_from_email
+        player_name = get_player_name_from_email(email_norm)
+        if player_name:
+            st.session_state["player_name"] = player_name
     
     if player_name:
         stats = _load_user_stats(player_name)
@@ -135,10 +141,18 @@ def show_profile_page(email: str):
 
     # DEBUG
     with st.expander("🔍 Debug - Player Session Info"):
+        from auth.auth import get_player_name_from_email
+        import json
+        from pathlib import Path
+        players_raw = json.loads(Path("data/players.json").read_text()) if Path("data/players.json").exists() else []
+        matched = [p for p in players_raw if p.get("email", "").strip().lower() == email_norm]
+        lookup_result = get_player_name_from_email(email_norm)
         st.json({
-            "email": st.session_state.get("email"),
-            "player_name": st.session_state.get("player_name"),
+            "email": email_norm,
+            "player_name_in_session": st.session_state.get("player_name"),
             "role": st.session_state.get("role"),
+            "players_json_email_match": matched,
+            "get_player_name_result": lookup_result,
         })
 
     st.markdown("---")
