@@ -144,13 +144,16 @@ def show_profile_page(email: str):
         from auth.auth import get_player_name_from_email
         import json
         from pathlib import Path
-        players_raw = json.loads(Path("data/players.json").read_text()) if Path("data/players.json").exists() else []
+        players_path = Path("data/players.json")
+        players_raw = json.loads(players_path.read_text()) if players_path.exists() else []
         matched = [p for p in players_raw if p.get("email", "").strip().lower() == email_norm]
         lookup_result = get_player_name_from_email(email_norm)
         st.json({
             "email": email_norm,
             "player_name_in_session": st.session_state.get("player_name"),
             "role": st.session_state.get("role"),
+            "players_json_path": str(players_path.resolve()),
+            "players_json_exists": players_path.exists(),
             "players_json_email_match": matched,
             "get_player_name_result": lookup_result,
         })
