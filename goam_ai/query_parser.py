@@ -56,7 +56,6 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
     if logged_in_player:
         if any(x in q.split() for x in ["me", "my", "i", "myself"]):
             matched_players.append(logged_in_player)
-
     # Explicit player name detection
     for p in players_list:
         # full match
