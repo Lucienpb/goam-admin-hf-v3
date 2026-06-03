@@ -122,6 +122,11 @@ def run():
 
             # 5) Generate natural language answer
             answer = call_llm(prompt, max_new_tokens=400, temperature=0.3)
+            
+            # DEBUG: Show dispatcher output
+            with st.expander("🔍 Debug Info"):
+                st.write("**Parsed Instruction:**", instruction)
+                st.write("**Action Result:**", action_result)
 
         # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
