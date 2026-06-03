@@ -122,14 +122,19 @@ def run():
 
             # 5) Generate natural language answer
             answer = call_llm(prompt, max_new_tokens=400, temperature=0.3)
-            
-            # DEBUG: Show dispatcher output
-            with st.expander("🔍 Debug Info"):
-                st.write("**Parsed Instruction:**", instruction)
-                st.write("**Action Result:**", action_result)
 
         # Save assistant response
         st.session_state.goam_chat.append(("assistant", answer))
+        
+        # DEBUG: Show dispatcher output AFTER answer is generated
+        st.divider()
+        with st.expander("🔍 Debug Info - Dispatcher Output"):
+            st.json({
+                "instruction": instruction,
+                "action_result": action_result
+            })
+        st.divider()
+        
         st.rerun()
 
     # Optional: show trajectory chart if last action returned data
