@@ -1,6 +1,31 @@
 import re
+import json
+from pathlib import Path
 
-def parse_query(question: str, players_list, teams_list, courses_list, logged_in_player=None):
+BASE_DIR = Path(__file__).parent.parent
+PLAYERS_FILE = BASE_DIR / "data" / "players.json"
+
+def _load_nicknames():
+    """Load player nicknames from players.json"""
+    try:
+        if not PLAYERS_FILE.exists():
+            return {}
+        
+        players_data = json.loads(PLAYERS_FILE.read_text())
+        nickname_map = {}  # nickname -> full name
+        
+        for player in players_data:
+            full_name = player.get("name", "")
+            for i in range(1, 5):
+                nick = player.get(f"Nick{i}", "").strip()
+                if nick:
+                    nickname_map[nick.lower()] = full_name
+        
+        return nickname_map
+    except Exception:
+        return {}
+
+NICKNAME_MAP = _load_nicknames()
     """
     Final GOAM AI Query Parser
     - Detects identity questions
@@ -41,6 +66,11 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
         tokens = p.lower().split()
         if any(t in q for t in tokens):
             matched_players.append(p)
+    
+    # Check nicknames in question
+    for nick, full_name in NICKNAME_MAP.items():
+        if nick in q and full_name in players_list:
+            matched_players.append(full_name)
 
     matched_players = list(dict.fromkeys(matched_players))  # dedupe
 
