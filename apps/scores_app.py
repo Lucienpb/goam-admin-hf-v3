@@ -130,17 +130,7 @@ def show_leaderboards():
     # Position Movement column
     movement = GOAMCalculator.calculate_position_movement(filtered_df)
     if movement and "Name" in ips_table.columns:
-        # Only show movement against first player in each tied group
-        seen_positions = set()
-        pos_movement = []
-        for _, row in ips_table.iterrows():
-            pos = row["Position"]
-            if pos not in seen_positions:
-                seen_positions.add(pos)
-                pos_movement.append(movement.get(row["Name"], "–"))
-            else:
-                pos_movement.append("")
-        ips_table.insert(2, "Pos Movement", pos_movement)
+        ips_table.insert(2, "Pos Movement", ips_table["Name"].map(movement).fillna("–"))
 
     # Drop internal Position column before display
     display_table = ips_table.drop(columns=["Position"])
@@ -156,15 +146,31 @@ def show_leaderboards():
 
     if leaderboard_choice == "IPS":
         st.subheader("🏆 IPS Leaderboard (Best 6 + Course Breakdown)")
-        from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
+        from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode, JsCode
         gb = GridOptionsBuilder.from_dataframe(display_table)
         gb.configure_default_column(resizable=True, minWidth=60)
         gb.configure_column("Pos", headerName="Pos", minWidth=55, maxWidth=70)
         gb.configure_column("Name", headerName="Name", minWidth=150)
-        gb.configure_column("Pos Movement", headerName="Pos Movement", minWidth=110, maxWidth=130)
         gb.configure_column("IPS", headerName="IPS", minWidth=60, maxWidth=80)
         gb.configure_column("Best6_IPS", headerName="Best 6", minWidth=70, maxWidth=90)
         gb.configure_column("Rounds_Played", headerName="Rounds", minWidth=70, maxWidth=90)
+        gb.configure_column(
+            "Pos Movement",
+            headerName="Pos Movement",
+            minWidth=110,
+            maxWidth=130,
+            cellRenderer=JsCode("""
+                function(params) {
+                    if (!params.value) return '';
+                    var val = params.value;
+                    var color = 'black';
+                    if (val.includes('\u2b06')) color = 'green';
+                    else if (val.includes('\u2b07')) color = 'orange';
+                    else if (val.includes('\u27a1')) color = 'blue';
+                    return '<span style="color:' + color + ';font-weight:bold">' + val + '</span>';
+                }
+            """)
+        )
         gb.configure_grid_options(domLayout="autoHeight")
         grid_options = gb.build()
         AgGrid(
@@ -174,6 +180,7 @@ def show_leaderboards():
             theme="streamlit",
             height=600,
             use_container_width=True,
+            allow_unsafe_jscode=True,
         )
     elif leaderboard_choice == "Strokes":
         st.subheader("⛳ Strokes Leaderboard (Best 6 Over Par)")
