@@ -253,7 +253,6 @@ class GOAMCalculator:
         if df.empty or "IPS" not in df.columns:
             return pd.DataFrame()
 
-        # Auto-detect course column
         course_col = None
         for col in df.columns:
             if col.strip().lower() == "course":
@@ -293,14 +292,39 @@ class GOAMCalculator:
             ascending=[False, False],
         ).reset_index(drop=True)
 
-        merged.insert(0, "Position", merged.index + 1)
+        # Shared positions — only show position on first of each tied group
+        positions = []
+        display_positions = []
+        rank = 1
+        prev_score = None
+        prev_rank = 1
+        for i, (_, row) in enumerate(merged.iterrows()):
+            score = (row["Best6_IPS"], row["Rounds_Played"])
+            if i == 0:
+                positions.append(rank)
+                display_positions.append(rank)
+                prev_score = score
+                prev_rank = rank
+            else:
+                if score == prev_score:
+                    positions.append(prev_rank)
+                    display_positions.append("")  # blank for tied players after first
+                else:
+                    rank = i + 1  # correct: position = row number (1-based)
+                    positions.append(rank)
+                    display_positions.append(rank)
+                    prev_rank = rank
+                prev_score = score
+
+        merged["Position"] = positions        # numeric for movement calc
+        merged["Pos"] = display_positions     # display version
 
         active = GOAMCalculator.get_active_courses(df)
         active = [c for c in active if c in merged.columns]
 
-        final_cols = ["Position", "Name", "IPS", "Best6_IPS"] + active + ["Rounds_Played"]
+        final_cols = ["Pos", "Name", "IPS", "Best6_IPS"] + active + ["Rounds_Played"]
 
-        return merged[final_cols]
+        return merged[["Position"] + final_cols]
 
     # ---------------------------------------------------------
     # Strokes Leaderboard
