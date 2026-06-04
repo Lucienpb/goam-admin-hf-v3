@@ -143,12 +143,12 @@ def show_profile_page(email: str):
         team = player_record.get("team", "N/A")
 
         st.markdown(
-            f"🏌️ **HNA Membership:** {membership} &nbsp;&nbsp; "
-            f"📏 **Handicap Index Cap:** {handicap_index} &nbsp;&nbsp; "
-            f"🤝 **LIV Team:** {team}",
+            f"🏌️ **HNA Membership:** {membership}  \n"
+            f"📏 **Handicap Index Cap:** {handicap_index} &nbsp;&nbsp; 🏌️‍♂️ **LIV Team:** {team}",
             unsafe_allow_html=True
         )
         st.markdown("")
+
 
         if stats:
             st.markdown(
