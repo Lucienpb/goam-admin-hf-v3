@@ -386,6 +386,54 @@ class GOAMCalculator:
         return f"GOAM_Scores_2026_{month}_updated.xlsx"
 
     # ---------------------------------------------------------
+    # Position Movement
+    # Compares position before vs after the latest course
+    # ---------------------------------------------------------
+    @staticmethod
+    def calculate_position_movement(df):
+        """
+        Returns a dict {player_name: movement_string}
+        e.g. {"Lucien Barnes": "⬆️ 2", "Arno Adonis": "⬇️ 1", ...}
+        """
+        active = GOAMCalculator.get_active_courses(df)
+
+        if len(active) < 2:
+            # Only one course played — no movement yet
+            return {}
+
+        latest_course = active[-1]
+        prev_courses = active[:-1]
+
+        # Leaderboard WITHOUT latest course
+        df_prev = df[df["Course"].isin(prev_courses)]
+        lb_prev = GOAMCalculator.build_ips_leaderboard(df_prev)
+
+        # Full leaderboard WITH latest course
+        lb_full = GOAMCalculator.build_ips_leaderboard(df)
+
+        if lb_prev.empty or lb_full.empty:
+            return {}
+
+        prev_positions = {row["Name"]: int(row["Position"]) for _, row in lb_prev.iterrows()}
+        full_positions = {row["Name"]: int(row["Position"]) for _, row in lb_full.iterrows()}
+
+        movement = {}
+        for name, curr_pos in full_positions.items():
+            prev_pos = prev_positions.get(name)
+            if prev_pos is None:
+                movement[name] = "🆕"
+            else:
+                delta = prev_pos - curr_pos  # positive = moved up
+                if delta > 0:
+                    movement[name] = f"⬆️ {delta}"
+                elif delta < 0:
+                    movement[name] = f"⬇️ {abs(delta)}"
+                else:
+                    movement[name] = "➡️"
+
+        return movement
+
+    # ---------------------------------------------------------
     # Build from JSON
     # ---------------------------------------------------------
     @staticmethod
