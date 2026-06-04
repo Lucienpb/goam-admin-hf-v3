@@ -11,7 +11,6 @@ import pandas as pd
 from backend.goam_loader import GOAMLoader
 from backend.goam_rounds import GOAMRounds
 from backend.goam_calculator import GOAMCalculator
-from utils.aggrid_helper import show_aggrid
 
 
 # ---------------------------------------------------------
@@ -146,53 +145,13 @@ def show_leaderboards():
 
     if leaderboard_choice == "IPS":
         st.subheader("🏆 IPS Leaderboard (Best 6 + Course Breakdown)")
-        from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode, JsCode
-        gb = GridOptionsBuilder.from_dataframe(display_table)
-        gb.configure_default_column(resizable=True, minWidth=60)
-        gb.configure_column("Pos", headerName="Pos", minWidth=55, maxWidth=70)
-        gb.configure_column("Name", headerName="Name", minWidth=150)
-        gb.configure_column("IPS", headerName="IPS", minWidth=60, maxWidth=80)
-        gb.configure_column("Best6_IPS", headerName="Best 6", minWidth=70, maxWidth=90)
-        gb.configure_column("Rounds_Played", headerName="Rounds", minWidth=70, maxWidth=90)
-        gb.configure_column(
-            "Pos Movement",
-            headerName="Pos Movement",
-            minWidth=110,
-            maxWidth=130,
-            cellRenderer=JsCode("""
-                function(params) {
-                    if (!params.value) return '';
-                    var val = params.value;
-                    var color = 'black';
-                    if (val.includes('\u2b06')) color = 'green';
-                    else if (val.includes('\u2b07')) color = 'orange';
-                    else if (val.includes('\u27a1')) color = 'blue';
-                    var span = document.createElement('span');
-                    span.style.color = color;
-                    span.style.fontWeight = 'bold';
-                    span.innerText = val;
-                    return span;
-                }
-            """)
-        )
-        gb.configure_grid_options(domLayout="autoHeight", enableCellTextSelection=True)
-        grid_options = gb.build()
-        AgGrid(
-            display_table,
-            gridOptions=grid_options,
-            columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
-            theme="streamlit",
-            height=600,
-            use_container_width=True,
-            allow_unsafe_jscode=True,
-            enable_enterprise_modules=False,
-        )
+        st.dataframe(display_table, hide_index=True, use_container_width=True)
     elif leaderboard_choice == "Strokes":
         st.subheader("⛳ Strokes Leaderboard (Best 6 Over Par)")
-        show_aggrid(strokes_table)
+        st.dataframe(strokes_table, hide_index=True, use_container_width=True)
     elif leaderboard_choice == "LIV":
         st.subheader("🏁 LIV Team Leaderboard (Top 3 IPS per Course)")
-        show_aggrid(liv_table)
+        st.dataframe(liv_table, hide_index=True, use_container_width=True)
 
 
 # ---------------------------------------------------------
@@ -215,7 +174,7 @@ def show_scorecards():
     choice = st.selectbox("Select Course", options)
 
     if choice in course_sheets:
-        show_aggrid(course_sheets[choice])
+        st.dataframe(course_sheets[choice], hide_index=True, use_container_width=True)
 
     # Export workbook
     st.subheader("💾 Export updated GOAM workbook")
