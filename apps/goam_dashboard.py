@@ -11,6 +11,7 @@
 import streamlit as st
 import pandas as pd
 from utils.json_utils import load_json
+from utils.aggrid_helper import show_aggrid
 
 def run():
     st.header("🏆 GOAM 2026 Season Dashboard")
@@ -49,7 +50,7 @@ def run():
         .reset_index()
     )
 
-    st.dataframe(ips_leaderboard)
+    show_aggrid(ips_leaderboard)
 
     # -----------------------------
     # Season Gross/Nett Leaderboard
@@ -63,7 +64,7 @@ def run():
         .reset_index()
     )
 
-    st.dataframe(gross_nett)
+    show_aggrid(gross_nett)
 
     # -----------------------------
     # OX Nau Leaderboard
@@ -77,7 +78,7 @@ def run():
         .reset_index()
     )
 
-    st.dataframe(ox_nau)
+    show_aggrid(ox_nau)
 
     # -----------------------------
     # LIV Team Standings
@@ -94,7 +95,7 @@ def run():
         .sort_values("points", ascending=False)
     )
 
-    st.dataframe(liv_df)
+    show_aggrid(liv_df)
 
     # -----------------------------
     # Player IPS Trend
@@ -116,4 +117,4 @@ def run():
 
     month_data = scores[month]
     players_df = pd.DataFrame(month_data["players"])
-    st.dataframe(players_df)
+    show_aggrid(players_df)
