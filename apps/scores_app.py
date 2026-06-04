@@ -129,7 +129,20 @@ def show_leaderboards():
     # Position Movement column
     movement = GOAMCalculator.calculate_position_movement(filtered_df)
     if movement and "Name" in ips_table.columns:
-        ips_table.insert(2, "Pos Movement", ips_table["Name"].map(movement).fillna("–"))
+        # Only show movement against first player in each tied group
+        seen_positions = set()
+        pos_movement = []
+        for _, row in ips_table.iterrows():
+            pos = row["Position"]
+            if pos not in seen_positions:
+                seen_positions.add(pos)
+                pos_movement.append(movement.get(row["Name"], "–"))
+            else:
+                pos_movement.append("")
+        ips_table.insert(2, "Pos Movement", pos_movement)
+
+    # Drop internal Position column before display
+    display_table = ips_table.drop(columns=["Position"])
 
     # Leaderboard selector
     st.subheader("🏆 Leaderboards")
@@ -142,13 +155,24 @@ def show_leaderboards():
 
     if leaderboard_choice == "IPS":
         st.subheader("🏆 IPS Leaderboard (Best 6 + Course Breakdown)")
-        st.dataframe(ips_table, width="stretch")
+        from st_aggrid import AgGrid, GridOptionsBuilder
+        gb = GridOptionsBuilder.from_dataframe(display_table)
+        gb.configure_default_column(resizable=True, autoSizeColumns=True)
+        gb.configure_grid_options(domLayout="autoHeight")
+        grid_options = gb.build()
+        AgGrid(
+            display_table,
+            gridOptions=grid_options,
+            fit_columns_on_grid_load=True,
+            theme="streamlit",
+            height=400,
+        )
     elif leaderboard_choice == "Strokes":
         st.subheader("⛳ Strokes Leaderboard (Best 6 Over Par)")
-        st.dataframe(strokes_table, width="stretch")
+        st.dataframe(strokes_table, hide_index=True, width="stretch")
     elif leaderboard_choice == "LIV":
         st.subheader("🏁 LIV Team Leaderboard (Top 3 IPS per Course)")
-        st.dataframe(liv_table, width="stretch")
+        st.dataframe(liv_table, hide_index=True, width="stretch")
 
 
 # ---------------------------------------------------------
