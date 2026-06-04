@@ -167,11 +167,15 @@ def show_leaderboards():
                     if (val.includes('\u2b06')) color = 'green';
                     else if (val.includes('\u2b07')) color = 'orange';
                     else if (val.includes('\u27a1')) color = 'blue';
-                    return '<span style="color:' + color + ';font-weight:bold">' + val + '</span>';
+                    var span = document.createElement('span');
+                    span.style.color = color;
+                    span.style.fontWeight = 'bold';
+                    span.innerText = val;
+                    return span;
                 }
             """)
         )
-        gb.configure_grid_options(domLayout="autoHeight")
+        gb.configure_grid_options(domLayout="autoHeight", enableCellTextSelection=True)
         grid_options = gb.build()
         AgGrid(
             display_table,
@@ -181,6 +185,7 @@ def show_leaderboards():
             height=600,
             use_container_width=True,
             allow_unsafe_jscode=True,
+            enable_enterprise_modules=False,
         )
     elif leaderboard_choice == "Strokes":
         st.subheader("⛳ Strokes Leaderboard (Best 6 Over Par)")
