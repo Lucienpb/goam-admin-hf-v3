@@ -39,8 +39,8 @@ SESSION_TIMEOUT = 3600  # 1 hour
 # ============================================================
 def scraper_is_awake(base_url: str) -> bool:
     try:
-        r = requests.get(base_url, timeout=3)
-        return r.headers.get("content-type", "").startswith("application/json")
+        r = requests.head(base_url + "/scrape", timeout=3)
+        return r.status_code in [200, 405]  # 405 = Method Not Allowed (POST only) = still alive
     except:
         return False
 
@@ -247,16 +247,24 @@ if st.sidebar.button("👤 My Profile"):
 st.sidebar.markdown("---")
 
 role = st.session_state.get("role", "member")
+page = st.session_state.get("page", "profile")
+
+# Determine which expander should be open based on current page
+_scores_open   = page in ["scores_leaderboards", "scores_cards"]
+_handicap_open = page in ["handicap"]
+_pairings_open = page in ["pairings_matrix", "pairings_gen"]
+_admin_open    = page in ["admin_users", "admin_data", "admin_user_data"]
+_ai_open       = page in ["ai_chat"]
 
 # SCORES GROUP
-with st.sidebar.expander("📘 Scores", expanded=False):
+with st.sidebar.expander("📘 Scores", expanded=_scores_open):
     if st.button("Leaderboards"):
         st.session_state.page = "scores_leaderboards"
     if st.button("Scorecards"):
         st.session_state.page = "scores_cards"
 
 # HANDICAP GROUP
-with st.sidebar.expander("🏌️ Handicap", expanded=False):
+with st.sidebar.expander("🏌️ Handicap", expanded=_handicap_open):
     if not scraper_awake:
         st.button("Single Player", disabled=True)
         if role == "admin":
@@ -278,18 +286,18 @@ with st.sidebar.expander("🏌️ Handicap", expanded=False):
 
 
 # PAIRINGS GROUP
-with st.sidebar.expander("⛳ Pairings", expanded=False):
+with st.sidebar.expander("⛳ Pairings", expanded=_pairings_open):
     if st.button("Matrix"):
         st.session_state.page = "pairings_matrix"
 
-    # Only admins may generate 4‑balls
+    # Only admins may generate 4-balls
     if role == "admin":
-        if st.button("4‑Ball Generation"):
+        if st.button("4-Ball Generation"):
             st.session_state.page = "pairings_gen"
 
 # ADMIN GROUP (Admins only)
 if role == "admin":
-    with st.sidebar.expander("🛠️ Admin", expanded=False):
+    with st.sidebar.expander("🛠️ Admin", expanded=_admin_open):
         if st.button("User Management"):
             st.session_state.page = "admin_users"
         if st.button("Data Manager"):
@@ -298,7 +306,7 @@ if role == "admin":
             st.session_state.page = "admin_user_data"
 
 # AI CHAT GROUP
-with st.sidebar.expander("🤖 AI", expanded=False):
+with st.sidebar.expander("🤖 AI", expanded=_ai_open):
     if st.button("GOAM AI Chat"):
         st.session_state.page = "ai_chat"
 
