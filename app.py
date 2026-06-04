@@ -89,6 +89,15 @@ def inject_theme():
             font-weight: 600;
             color: #0b3d91;
         }
+
+        /* Multiselect tags - light green */
+        span[data-baseweb="tag"] {
+            background-color: #90EE90 !important;
+            color: #1a1a1a !important;
+        }
+        span[data-baseweb="tag"] span {
+            color: #1a1a1a !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
