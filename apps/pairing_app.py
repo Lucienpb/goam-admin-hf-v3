@@ -14,6 +14,7 @@ from utils.name_utils import (
     build_alias_map,
     build_display_name_map
 )
+from utils.aggrid_helper import show_aggrid
 
 # ---------------------------------------------------------
 # NAME VALIDATION & MAPPING LAYER
@@ -117,7 +118,7 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
     matrix_display.columns = [display_map.get(p, p) for p in matrix.columns]
 
     with st.expander("View Matrix", expanded=False):
-        st.dataframe(matrix_display)
+        show_aggrid(matrix_display)
 
     # Heatmap
     show_heatmap = st.checkbox("Show pairing heatmap")
@@ -170,13 +171,13 @@ def show_matrix_page(players_df, pairings_json, alias_map, display_map):
             f"✅ {display_map.get(lookup_player, lookup_player)} HAS played with ({len(played_with)})",
             expanded=False
         ):
-            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in played_with]}))
+            show_aggrid(pd.DataFrame({"Player": [display_map.get(p, p) for p in played_with]}))
 
         with st.expander(
             f"❌ {display_map.get(lookup_player, lookup_player)} has NOT played with ({len(not_played_with)})",
             expanded=False
         ):
-            st.table(pd.DataFrame({"Player": [display_map.get(p, p) for p in not_played_with]}))
+            show_aggrid(pd.DataFrame({"Player": [display_map.get(p, p) for p in not_played_with]}))
 
 
 # ---------------------------------------------------------
@@ -306,7 +307,7 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
             }
             rows.append(row)
 
-        st.dataframe(pd.DataFrame(rows))
+        show_aggrid(pd.DataFrame(rows))
 
 
 # ---------------------------------------------------------
