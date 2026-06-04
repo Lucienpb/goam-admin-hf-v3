@@ -20,3 +20,6 @@ xlsxwriter
 
 # Misc utilities
 python-dateutil
+
+# AgGrid
+streamlit-aggrid==0.3.4
