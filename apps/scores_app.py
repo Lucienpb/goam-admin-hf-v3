@@ -129,7 +129,7 @@ def show_leaderboards():
     # Position Movement column
     movement = GOAMCalculator.calculate_position_movement(filtered_df)
     if movement and "Name" in ips_table.columns:
-        ips_table.insert(2, "Pos Movement", ips_table["Name"].map(movement).fillna("–"))
+        ips_table.insert(2, "Pos. Mov.", ips_table["Name"].map(movement).fillna("–"))
 
     # Drop internal Position column before display
     display_table = ips_table.drop(columns=["Position"])
