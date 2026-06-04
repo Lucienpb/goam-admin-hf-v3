@@ -322,7 +322,9 @@ class GOAMCalculator:
         active = GOAMCalculator.get_active_courses(df)
         active = [c for c in active if c in merged.columns]
 
-        final_cols = ["Pos", "Name", "IPS", "Best6_IPS"] + active + ["Rounds_Played"]
+        merged["Avg_IPS"] = (merged["IPS"] / merged["Rounds_Played"].replace(0, pd.NA)).round(1)
+
+        final_cols = ["Pos", "Name", "IPS", "Best6_IPS"] + active + ["Avg_IPS", "Rounds_Played"]
 
         return merged[["Position"] + final_cols]
 
