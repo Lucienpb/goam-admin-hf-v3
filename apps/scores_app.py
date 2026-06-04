@@ -125,16 +125,11 @@ def show_leaderboards():
     rounds.update_position_history(ips_table)
 
     ips_table = ips_table.copy()
-#    if "Name" in ips_table.columns:
-#        ips_table.insert(
-#            2,
-#            "Pos Change",
-#            ips_table["Name"].apply(
-#                lambda name: _format_pos_change(rounds.get_position_change(name))
-#           )
-#        )
-#    else:
-#        ips_table.insert(2, "Pos Change", "–")
+
+    # Position Movement column
+    movement = GOAMCalculator.calculate_position_movement(filtered_df)
+    if movement and "Name" in ips_table.columns:
+        ips_table.insert(2, "Pos Movement", ips_table["Name"].map(movement).fillna("–"))
 
     # Leaderboard selector
     st.subheader("🏆 Leaderboards")
