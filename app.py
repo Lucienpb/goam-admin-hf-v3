@@ -37,6 +37,7 @@ SESSION_TIMEOUT = 3600  # 1 hour
 # ============================================================
 # SCRAPER STATUS CHECK
 # ============================================================
+@st.cache_data(ttl=60)
 def scraper_is_awake(base_url: str) -> bool:
     try:
         r = requests.head(base_url + "/scrape", timeout=3)
