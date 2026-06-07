@@ -76,7 +76,7 @@ def parse_query(question: str, players_list, teams_list, courses_list, logged_in
     
     # Check nicknames in question
     for nick, full_name in NICKNAME_MAP.items():
-        if nick in q and full_name in players_list:
+        if re.search(rf"\b{re.escape(nick)}\b", q) and full_name in players_list:
             matched_players.append(full_name)
 
     matched_players = list(dict.fromkeys(matched_players))  # dedupe
