@@ -10,22 +10,26 @@ Allows:
 
 import streamlit as st
 import os
+import json
 from datetime import datetime
+from pathlib import Path
 
 from auth.auth import load_users, save_users, verify_password, change_password
 from backend.goam_calculator import GOAMCalculator
 from utils.github_storage import save_user_record
+from backend.goam_loader import GOAMLoader
 
 PHOTO_DIR = "data/profile_photos"
-
+SCORES_FILE = Path("data/goam_scores.json")
+PLAYERS_FILE = Path("data/players.json")
 
 # ---------------------------------------------------------
 # LOAD USER STATS FROM GOAM SCORES
 # ---------------------------------------------------------
-def _load_user_stats(player_name: str):
+@st.cache_data(ttl=300)
+def _load_user_stats(player_name: str, file_mtime: float):
     try:
-        from backend.goam_loader import GOAMLoader
-        goam_scores = GOAMLoader.load_json_scores("data/goam_scores.json")
+        goam_scores = GOAMLoader.load_json_scores(str(SCORES_FILE))
         season_df = GOAMCalculator.build_from_json(goam_scores)
     except Exception:
         return None
@@ -131,11 +135,11 @@ def show_profile_page(email: str):
     st.subheader("📊 My GOAM Stats")
 
     if player_name:
-        stats = _load_user_stats(player_name)
+        # Use file mtime to ensure the cache refreshes if the file is updated
+        mtime = os.path.getmtime(SCORES_FILE) if SCORES_FILE.exists() else 0
+        stats = _load_user_stats(player_name, mtime)
 
-        import json
-        from pathlib import Path
-        players_raw = json.loads(Path("data/players.json").read_text()) if Path("data/players.json").exists() else []
+        players_raw = json.loads(PLAYERS_FILE.read_text()) if PLAYERS_FILE.exists() else []
         player_record = next((p for p in players_raw if p.get("name", "").lower() == player_name.lower()), {})
 
         membership = player_record.get("membership", "N/A")
@@ -148,7 +152,6 @@ def show_profile_page(email: str):
             unsafe_allow_html=True
         )
         st.markdown("")
-
 
         if stats:
             st.markdown(
@@ -166,12 +169,21 @@ def show_profile_page(email: str):
     else:
         st.warning("Player name not found. Please login again.")
 
+    # Add a debug section to show the loaded scores file info
+    with st.expander("🔍 Debug Info - GOAM Scores File"):
+        st.write(f"Path to goam_scores.json: {SCORES_FILE.resolve()}")
+        if SCORES_FILE.exists():
+            st.write(f"File exists: Yes")
+            st.write(f"Last modified time (mtime): {os.path.getmtime(SCORES_FILE)}")
+            st.write(f"File size: {SCORES_FILE.stat().st_size} bytes")
+            st.json(GOAMLoader.load_json_scores(str(SCORES_FILE))) # Display full content for debugging
+        else:
+            st.write("File exists: No")
+
     # DEBUG
     with st.expander("🔍 Debug - Player Session Info"):
         from auth.auth import get_player_name_from_email
-        import json
-        from pathlib import Path
-        players_path = Path("data/players.json")
+        players_path = PLAYERS_FILE
         players_raw = json.loads(players_path.read_text()) if players_path.exists() else []
         matched = [p for p in players_raw if p.get("email", "").strip().lower() == email_norm]
         lookup_result = get_player_name_from_email(email_norm)
