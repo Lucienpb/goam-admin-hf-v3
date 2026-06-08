@@ -467,8 +467,8 @@ class GOAMCalculator:
         rows = []
         for month, data in goam_scores.items():
             course = data.get("course", "")
-            if str(course).strip().lower() == "services":
-                continue  # hard exclude
+#            if str(course).strip().lower() == "services":
+#                continue  # hard exclude
 
             for p in data.get("players", []):
                 rows.append({
