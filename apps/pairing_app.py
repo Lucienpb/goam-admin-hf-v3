@@ -189,11 +189,30 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
     matrix = build_pairing_matrix(pairings_json, players_df, alias_map)
     all_players = list(matrix.index)
 
+    # Persist guest players across reruns so they remain in the selector.
+    if "pairing_guest_players" not in st.session_state:
+        st.session_state["pairing_guest_players"] = {}
+
+    guest_players = st.session_state["pairing_guest_players"]
+
+    for guest_id, guest_meta in guest_players.items():
+        display_map[guest_id] = guest_meta.get("name", guest_id)
+        if guest_id not in matrix.index:
+            matrix.loc[guest_id] = 0
+            matrix[guest_id] = 0
+
+    all_players = list(matrix.index)
+
+    if "pairing_selected_players" not in st.session_state:
+        st.session_state["pairing_selected_players"] = all_players.copy()
+
     st.subheader("📝 Select Players Playing This Month")
+    valid_defaults = [p for p in st.session_state["pairing_selected_players"] if p in all_players]
     selected_players = st.multiselect(
         "Choose players for this month",
         all_players,
-        default=all_players,
+        default=valid_defaults if valid_defaults else all_players,
+        key="pairing_selected_players",
         format_func=lambda p: display_map.get(p, p)
     )
 
@@ -206,7 +225,12 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
     )
 
     # PLAYER MODES
-    player_modes = {}
+    player_modes = {
+        gid: ("Carting 🛺" if meta.get("carting") else "Walking 🚶‍♂️")
+        for gid, meta in guest_players.items()
+    }
+    for gid in guest_players:
+        teams[gid] = ""
 
     # ADD GUESTS
     st.subheader("➕ Add Guest Players")
@@ -220,18 +244,27 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
         if name_clean:
             guest_id = "guest_" + name_clean.lower().replace(" ", "_")
 
-            if guest_id not in selected_players:
-                selected_players.append(guest_id)
+            guest_players[guest_id] = {
+                "name": name_clean,
+                "carting": guest_cart,
+            }
+            st.session_state["pairing_guest_players"] = guest_players
 
-            display_map[guest_id] = name_clean
-            player_modes[guest_id] = "Carting 🛺" if guest_cart else "Walking 🚶‍♂️"
-            teams[guest_id] = ""
-
-            if guest_id not in matrix.index:
-                matrix.loc[guest_id] = 0
-                matrix[guest_id] = 0
+            current_selected = st.session_state.get("pairing_selected_players", selected_players)
+            if guest_id not in current_selected:
+                st.session_state["pairing_selected_players"] = current_selected + [guest_id]
 
             st.success(f"Guest added: {name_clean}")
+            st.rerun()
+
+    if st.button("Clear Guests"):
+        st.session_state["pairing_guest_players"] = {}
+        current_selected = st.session_state.get("pairing_selected_players", [])
+        st.session_state["pairing_selected_players"] = [
+            p for p in current_selected if not p.startswith("guest_")
+        ]
+        st.success("All guest players cleared.")
+        st.rerun()
 
     # WALKING / CARTING TABLE
     st.subheader("🚶‍♂️ / 🛺 Walking or Carting")
