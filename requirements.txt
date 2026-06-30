@@ -1,25 +1,23 @@
 streamlit==1.57.0
 pandas==2.2.3
 numpy==1.26.4
-openpyxl==3.1.2
-python-dateutil==2.9.0
 matplotlib==3.8.3
-
-# Authentication
-bcrypt
-
-# API calls
-requests
-
-# Hugging Face API
-huggingface_hub>=0.19.0
+altair
 
 # Excel handling
+openpyxl==3.1.2
 xlrd
 xlsxwriter
+python-dateutil==2.9.0
 
-# Misc utilities
-python-dateutil
+# Authentication and API clients
+bcrypt
+requests
+huggingface_hub>=0.19.0
 
-# AgGrid
+# UI components
 streamlit-aggrid==0.3.4
+
+# Optional local/automation dependencies
+playwright
+llama-cpp-python
