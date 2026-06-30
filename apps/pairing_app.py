@@ -319,6 +319,21 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
         </style>
     """, unsafe_allow_html=True)
 
+    eligible_cart_players = [p for p in selected_players if not p.startswith("guest_")]
+    bulk_cols = st.columns(2)
+
+    with bulk_cols[0]:
+        if st.button("Select All Carting"):
+            for p in eligible_cart_players:
+                st.session_state[f"cart_{p}"] = True
+            st.rerun()
+
+    with bulk_cols[1]:
+        if st.button("Deselect All Carting"):
+            for p in eligible_cart_players:
+                st.session_state[f"cart_{p}"] = False
+            st.rerun()
+
     for p in selected_players:
         if p.startswith("guest_"):
             continue
