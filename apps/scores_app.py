@@ -50,6 +50,50 @@ def _to_int_or_none(value):
         return None
 
 
+def _generated_scorecard_to_rows():
+    generated_scorecard = load_json("data/generated_scorecard.json")
+    if not isinstance(generated_scorecard, dict):
+        return pd.DataFrame(), "Generated scorecard file missing or invalid."
+
+    month_key = str(generated_scorecard.get("month_key", "")).strip()
+    course_name = str(generated_scorecard.get("course", "")).strip()
+    rows = generated_scorecard.get("scorecard", [])
+
+    if not rows:
+        return pd.DataFrame(), "No generated scorecard rows found."
+    if not month_key:
+        return pd.DataFrame(), "Generated scorecard is missing month_key."
+    if not course_name:
+        return pd.DataFrame(), "Generated scorecard is missing course name."
+
+    out = []
+    for idx, row in enumerate(rows, 1):
+        name = str(row.get("Name", "")).strip()
+        if not name:
+            continue
+
+        strokes = _to_int_or_none(row.get("Strokes"))
+        ips = _to_int_or_none(row.get("IPS"))
+        if strokes is None or ips is None:
+            continue
+
+        out.append(
+            {
+                "Name": name,
+                "Strokes": strokes,
+                "IPS": ips,
+                "Course": course_name,
+                "Month": month_key,
+                "Team": str(row.get("LIV", "")).strip(),
+            }
+        )
+
+    if not out:
+        return pd.DataFrame(), "Generated scorecard has no valid rows with numeric Strokes and IPS."
+
+    return pd.DataFrame(out), None
+
+
 # ---------------------------------------------------------
 # LOAD + PREPARE DATA (shared by both pages)
 # ---------------------------------------------------------
@@ -97,6 +141,23 @@ def show_leaderboards():
     if error:
         st.error(error)
         return
+
+    include_generated = st.checkbox(
+        "Include generated scorecard (without publishing)",
+        value=False,
+        help="Temporarily adds data/generated_scorecard.json to leaderboard calculations.",
+    )
+
+    if include_generated:
+        generated_df, generated_error = _generated_scorecard_to_rows()
+        if generated_error:
+            st.warning(generated_error)
+        elif not generated_df.empty:
+            all_rounds_df = pd.concat([all_rounds_df, generated_df], ignore_index=True)
+            st.caption(
+                f"Included generated scorecard: {generated_df['Course'].iloc[0]} "
+                f"({generated_df['Month'].iloc[0]}) with {len(generated_df)} players."
+            )
 
     # Course selection
     st.subheader("🎯 Select courses to include in leaderboards")
@@ -324,12 +385,35 @@ def show_scorecards():
     else:
         st.info("No generated scorecard found yet. Create one in 4-Ball Generation first.")
 
+    include_generated_export = st.checkbox(
+        "Include generated scorecard in workbook export (without publishing)",
+        value=False,
+        help="When enabled, export calculations include data/generated_scorecard.json.",
+        key="include_generated_export_toggle",
+    )
+
+    export_df = all_rounds_df.copy()
+    generated_export_df = pd.DataFrame()
+
+    if include_generated_export:
+        generated_export_df, generated_export_error = _generated_scorecard_to_rows()
+        if generated_export_error:
+            st.warning(generated_export_error)
+        elif not generated_export_df.empty:
+            export_df = pd.concat([export_df, generated_export_df], ignore_index=True)
+            st.caption(
+                f"Workbook export includes generated scorecard: {generated_export_df['Course'].iloc[0]} "
+                f"({generated_export_df['Month'].iloc[0]}) with {len(generated_export_df)} players."
+            )
+
     # Export workbook
     st.subheader("💾 Export updated GOAM workbook")
 
-    ips_table = GOAMCalculator.build_ips_leaderboard(all_rounds_df)
-    strokes_table = GOAMCalculator.build_strokes_leaderboard(all_rounds_df)
-    liv_table = GOAMCalculator.build_liv_leaderboard(all_rounds_df)
+    ips_table = GOAMCalculator.build_ips_leaderboard(export_df)
+    strokes_table = GOAMCalculator.build_strokes_leaderboard(export_df)
+    liv_table = GOAMCalculator.build_liv_leaderboard(export_df)
+
+    export_course_sheets = GOAMCalculator.split_by_course(export_df)
 
     output_file = GOAMCalculator.generate_output_filename()
     os.makedirs("data", exist_ok=True)
@@ -343,7 +427,7 @@ def show_scorecards():
         if generated_rows:
             generated_df.to_excel(writer, sheet_name="GeneratedScorecard", index=False)
 
-        for course, df in course_sheets.items():
+        for course, df in export_course_sheets.items():
             df.to_excel(writer, sheet_name=course, index=False)
 
     with open(output_path, "rb") as f:
