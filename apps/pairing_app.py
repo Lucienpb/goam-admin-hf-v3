@@ -255,6 +255,8 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
         format_func=lambda p: display_map.get(p, p)
     )
 
+    st.caption(f"Players selected this month: {len(selected_players)}")
+
     # TEAM INITIALS
     teams = dict(
         zip(
