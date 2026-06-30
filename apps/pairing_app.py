@@ -539,6 +539,17 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
         if not template_rows:
             st.warning("No scorecard template found. Add data/scorecard_template.json or data/scorecard_template.csv.")
         else:
+            month_key = st.text_input(
+                "Month key (example: Jul'26)",
+                value=st.session_state.get("pairing_scorecard_month_key", ""),
+                key="pairing_scorecard_month_key",
+            )
+            course_name = st.text_input(
+                "Course name",
+                value=st.session_state.get("pairing_scorecard_course_name", ""),
+                key="pairing_scorecard_course_name",
+            )
+
             if st.button("Create Scorecard JSON"):
                 scorecard_rows = _build_scorecard_from_fourballs(final_groups, template_rows)
                 st.session_state["pairing_generated_scorecard_rows"] = scorecard_rows
@@ -549,6 +560,8 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 
                 save_path = "data/generated_scorecard.json"
                 json_payload = {
+                    "month_key": month_key,
+                    "course": course_name,
                     "scorecard": scorecard_rows
                 }
 

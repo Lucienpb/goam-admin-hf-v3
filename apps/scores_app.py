@@ -11,6 +11,7 @@ import pandas as pd
 from backend.goam_loader import GOAMLoader
 from backend.goam_rounds import GOAMRounds
 from backend.goam_calculator import GOAMCalculator
+from utils.json_utils import load_json, save_json
 
 
 # ---------------------------------------------------------
@@ -35,6 +36,18 @@ def _format_pos_change(delta):
     if d < 0:
         return f"⬇️ {abs(d)}"
     return "➡️"
+
+
+def _to_int_or_none(value):
+    try:
+        if value is None:
+            return None
+        s = str(value).strip()
+        if s == "":
+            return None
+        return int(float(s))
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------
@@ -176,6 +189,141 @@ def show_scorecards():
     if choice in course_sheets:
         st.dataframe(course_sheets[choice], hide_index=True, use_container_width=True)
 
+    st.subheader("🧾 Scorecard from 4-Ball Generator")
+    generated_scorecard = load_json("data/generated_scorecard.json")
+
+    if isinstance(generated_scorecard, dict):
+        generated_rows = generated_scorecard.get("scorecard", [])
+        generated_month_key = str(generated_scorecard.get("month_key", "")).strip()
+        generated_course_name = str(generated_scorecard.get("course", "")).strip()
+    else:
+        generated_rows = []
+        generated_month_key = ""
+        generated_course_name = ""
+
+    if generated_rows:
+        generated_df = pd.DataFrame(generated_rows)
+
+        month_key = st.text_input(
+            "Month key for this generated scorecard",
+            value=generated_month_key,
+            key="generated_scorecard_month_key",
+            help="Example: Jul'26",
+        )
+        course_name = st.text_input(
+            "Course name for this generated scorecard",
+            value=generated_course_name,
+            key="generated_scorecard_course_name",
+        )
+
+        edited_generated_df = st.data_editor(
+            generated_df,
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            disabled=["Fourball"],
+            key="generated_scorecard_editor",
+        )
+
+        generated_df = edited_generated_df
+
+        if st.button("Save generated scorecard edits"):
+            cleaned_rows = edited_generated_df.fillna("").to_dict(orient="records")
+            save_json(
+                "data/generated_scorecard.json",
+                {
+                    "month_key": month_key,
+                    "course": course_name,
+                    "scorecard": cleaned_rows,
+                },
+            )
+            st.success("Generated scorecard updated.")
+
+        if st.button("Publish generated scorecard to GOAM scores"):
+            month_key_clean = month_key.strip()
+            course_name_clean = course_name.strip()
+
+            if not month_key_clean:
+                st.error("Month key is required before publishing.")
+            elif not course_name_clean:
+                st.error("Course name is required before publishing.")
+            else:
+                records = edited_generated_df.fillna("").to_dict(orient="records")
+                invalid_rows = []
+                players = []
+
+                optional_map = {
+                    "Handicap": "handicap",
+                    "NP1": "np1",
+                    "NP2": "np2",
+                    "LD1": "ld1",
+                    "LD2": "ld2",
+                    "BG": "bg",
+                    "BN": "bn",
+                    "Pool Bet": "pool_bet",
+                    "Pool Payouts": "pool_payouts",
+                    "Fines": "fines",
+                }
+
+                for idx, row in enumerate(records, 1):
+                    name = str(row.get("Name", "")).strip()
+                    if not name:
+                        continue
+
+                    strokes = _to_int_or_none(row.get("Strokes"))
+                    ips = _to_int_or_none(row.get("IPS"))
+
+                    if strokes is None or ips is None:
+                        invalid_rows.append(idx)
+                        continue
+
+                    player = {
+                        "name": name,
+                        "strokes": strokes,
+                        "ips": ips,
+                        "team": str(row.get("LIV", "")).strip(),
+                    }
+
+                    for source_col, target_key in optional_map.items():
+                        value = _to_int_or_none(row.get(source_col))
+                        if value is not None:
+                            player[target_key] = value
+
+                    players.append(player)
+
+                if invalid_rows:
+                    st.error(
+                        "Strokes and IPS must be numeric for all players before publish. "
+                        f"Invalid rows: {invalid_rows}"
+                    )
+                elif not players:
+                    st.error("No valid player rows found to publish.")
+                else:
+                    goam_scores = load_json("data/goam_scores.json")
+                    if not isinstance(goam_scores, dict):
+                        goam_scores = {}
+
+                    goam_scores[month_key_clean] = {
+                        "course": course_name_clean,
+                        "players": players,
+                    }
+
+                    save_json("data/goam_scores.json", goam_scores)
+                    save_json(
+                        "data/generated_scorecard.json",
+                        {
+                            "month_key": month_key_clean,
+                            "course": course_name_clean,
+                            "scorecard": records,
+                        },
+                    )
+                    st.success(
+                        f"Published generated scorecard to data/goam_scores.json under {month_key_clean}."
+                    )
+                    st.rerun()
+    else:
+        st.info("No generated scorecard found yet. Create one in 4-Ball Generation first.")
+
     # Export workbook
     st.subheader("💾 Export updated GOAM workbook")
 
@@ -191,6 +339,9 @@ def show_scorecards():
         ips_table.to_excel(writer, sheet_name="IPS", index=False)
         strokes_table.to_excel(writer, sheet_name="Strokes", index=False)
         liv_table.to_excel(writer, sheet_name="LIV", index=False)
+
+        if generated_rows:
+            generated_df.to_excel(writer, sheet_name="GeneratedScorecard", index=False)
 
         for course, df in course_sheets.items():
             df.to_excel(writer, sheet_name=course, index=False)
