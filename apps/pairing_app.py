@@ -320,19 +320,20 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
     """, unsafe_allow_html=True)
 
     eligible_cart_players = [p for p in selected_players if not p.startswith("guest_")]
-    bulk_cols = st.columns(2)
+    all_carting = bool(eligible_cart_players) and all(
+        st.session_state.get(f"cart_{p}", False) for p in eligible_cart_players
+    )
 
-    with bulk_cols[0]:
-        if st.button("Select All Carting"):
-            for p in eligible_cart_players:
-                st.session_state[f"cart_{p}"] = True
-            st.rerun()
+    carting_toggle_all = st.checkbox(
+        "Select all carting 🛺",
+        value=all_carting,
+        help="Tick to mark all selected players as carting. Untick to mark all as walking.",
+    )
 
-    with bulk_cols[1]:
-        if st.button("Deselect All Carting"):
-            for p in eligible_cart_players:
-                st.session_state[f"cart_{p}"] = False
-            st.rerun()
+    if eligible_cart_players and carting_toggle_all != all_carting:
+        for p in eligible_cart_players:
+            st.session_state[f"cart_{p}"] = carting_toggle_all
+        st.rerun()
 
     for p in selected_players:
         if p.startswith("guest_"):
