@@ -203,6 +203,48 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
     if "pairing_selected_players" not in st.session_state:
         st.session_state["pairing_selected_players"] = all_players.copy()
 
+    # ADD/CLEAR GUESTS BEFORE PLAYER SELECTOR
+    # Streamlit forbids mutating a widget's key after the widget is instantiated.
+    st.subheader("➕ Add Guest Players")
+
+    guest_name = st.text_input("Guest name")
+    guest_cart = st.checkbox("Guest is carting 🛺", value=False)
+
+    if st.button("Add Guest"):
+        name_clean = guest_name.strip()
+
+        if name_clean:
+            guest_id = "guest_" + name_clean.lower().replace(" ", "_")
+
+            guest_players[guest_id] = {
+                "name": name_clean,
+                "carting": guest_cart,
+            }
+            st.session_state["pairing_guest_players"] = guest_players
+
+            current_selected = st.session_state.get("pairing_selected_players", [])
+            if guest_id not in current_selected:
+                st.session_state["pairing_selected_players"] = current_selected + [guest_id]
+
+            st.success(f"Guest added: {name_clean}")
+            st.rerun()
+
+    if st.button("Clear Guests"):
+        st.session_state["pairing_guest_players"] = {}
+        current_selected = st.session_state.get("pairing_selected_players", [])
+        st.session_state["pairing_selected_players"] = [
+            p for p in current_selected if not p.startswith("guest_")
+        ]
+        st.success("All guest players cleared.")
+        st.rerun()
+
+    # Recompute options after possible add/clear actions.
+    guest_players = st.session_state["pairing_guest_players"]
+    for guest_id, guest_meta in guest_players.items():
+        display_map[guest_id] = guest_meta.get("name", guest_id)
+
+    all_players = matrix_players + [gid for gid in guest_players if gid not in matrix_players]
+
     st.subheader("📝 Select Players Playing This Month")
     valid_defaults = [p for p in st.session_state["pairing_selected_players"] if p in all_players]
     selected_players = st.multiselect(
@@ -228,40 +270,6 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
     }
     for gid in guest_players:
         teams[gid] = ""
-
-    # ADD GUESTS
-    st.subheader("➕ Add Guest Players")
-
-    guest_name = st.text_input("Guest name")
-    guest_cart = st.checkbox("Guest is carting 🛺", value=False)
-
-    if st.button("Add Guest"):
-        name_clean = guest_name.strip()
-
-        if name_clean:
-            guest_id = "guest_" + name_clean.lower().replace(" ", "_")
-
-            guest_players[guest_id] = {
-                "name": name_clean,
-                "carting": guest_cart,
-            }
-            st.session_state["pairing_guest_players"] = guest_players
-
-            current_selected = st.session_state.get("pairing_selected_players", selected_players)
-            if guest_id not in current_selected:
-                st.session_state["pairing_selected_players"] = current_selected + [guest_id]
-
-            st.success(f"Guest added: {name_clean}")
-            st.rerun()
-
-    if st.button("Clear Guests"):
-        st.session_state["pairing_guest_players"] = {}
-        current_selected = st.session_state.get("pairing_selected_players", [])
-        st.session_state["pairing_selected_players"] = [
-            p for p in current_selected if not p.startswith("guest_")
-        ]
-        st.success("All guest players cleared.")
-        st.rerun()
 
     # WALKING / CARTING TABLE
     st.subheader("🚶‍♂️ / 🛺 Walking or Carting")
