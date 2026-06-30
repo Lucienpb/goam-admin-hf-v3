@@ -93,6 +93,28 @@ def format_player(p, display_map, teams, player_modes):
     return f"{nick}{team_part} {icon}"
 
 
+def _build_fourball_rows(groups, display_map, teams, player_modes):
+    rows = []
+    for i, g in enumerate(groups, 1):
+        row = {
+            "Fourball": i,
+            "Player 1": format_player(g[0], display_map, teams, player_modes) if len(g) > 0 else "",
+            "Player 2": format_player(g[1], display_map, teams, player_modes) if len(g) > 1 else "",
+            "Player 3": format_player(g[2], display_map, teams, player_modes) if len(g) > 2 else "",
+            "Player 4": format_player(g[3], display_map, teams, player_modes) if len(g) > 3 else "",
+        }
+        rows.append(row)
+    return rows
+
+
+def _find_player_slot(groups, player):
+    for gi, group in enumerate(groups):
+        for pi, current in enumerate(group):
+            if current == player:
+                return gi, pi
+    return None, None
+
+
 # ---------------------------------------------------------
 # MATRIX PAGE
 # ---------------------------------------------------------
@@ -188,6 +210,11 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 
     matrix = build_pairing_matrix(pairings_json, players_df, alias_map)
     matrix_players = list(matrix.index)
+
+    if "pairing_generated_groups" not in st.session_state:
+        st.session_state["pairing_generated_groups"] = []
+    if "pairing_generated_groups_original" not in st.session_state:
+        st.session_state["pairing_generated_groups_original"] = []
 
     # Persist guest players across reruns so they remain in the selector.
     if "pairing_guest_players" not in st.session_state:
@@ -334,20 +361,94 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
             player_modes
         )
 
+        st.session_state["pairing_generated_groups"] = [list(g) for g in final_groups]
+        st.session_state["pairing_generated_groups_original"] = [list(g) for g in final_groups]
+
+    final_groups = st.session_state.get("pairing_generated_groups", [])
+
+    if final_groups:
         st.subheader("🏌️ Fourballs for Next Month")
 
-        rows = []
-        for i, g in enumerate(final_groups, 1):
-            row = {
-                "Fourball": i,
-                "Player 1": format_player(g[0], display_map, teams, player_modes) if len(g) > 0 else "",
-                "Player 2": format_player(g[1], display_map, teams, player_modes) if len(g) > 1 else "",
-                "Player 3": format_player(g[2], display_map, teams, player_modes) if len(g) > 2 else "",
-                "Player 4": format_player(g[3], display_map, teams, player_modes) if len(g) > 3 else "",
-            }
-            rows.append(row)
-
+        rows = _build_fourball_rows(final_groups, display_map, teams, player_modes)
         show_aggrid(pd.DataFrame(rows))
+
+        st.subheader("✏️ Manual Adjustments")
+        st.caption("Swap players between fourballs or replace late withdrawals.")
+
+        current_players = [p for g in final_groups for p in g]
+
+        swap_col, replace_col = st.columns(2)
+
+        with swap_col:
+            st.markdown("**Swap players**")
+            swap_a = st.selectbox(
+                "Player A",
+                current_players,
+                key="swap_player_a",
+                format_func=lambda p: display_map.get(p, p),
+            )
+
+            swap_b_options = [p for p in current_players if p != swap_a]
+            swap_b = st.selectbox(
+                "Player B",
+                swap_b_options,
+                key="swap_player_b",
+                format_func=lambda p: display_map.get(p, p),
+            ) if swap_b_options else None
+
+            if st.button("Swap Players"):
+                if not swap_a or not swap_b:
+                    st.warning("Select two different players to swap.")
+                else:
+                    g1, p1 = _find_player_slot(final_groups, swap_a)
+                    g2, p2 = _find_player_slot(final_groups, swap_b)
+
+                    if g1 is None or g2 is None:
+                        st.error("Could not locate one or both players in the current fourballs.")
+                    else:
+                        final_groups[g1][p1], final_groups[g2][p2] = final_groups[g2][p2], final_groups[g1][p1]
+                        st.session_state["pairing_generated_groups"] = final_groups
+                        st.success("Players swapped.")
+                        st.rerun()
+
+        with replace_col:
+            st.markdown("**Replace withdrawn player**")
+            withdrawn_player = st.selectbox(
+                "Withdrawn player",
+                current_players,
+                key="withdrawn_player",
+                format_func=lambda p: display_map.get(p, p),
+            )
+
+            replacement_pool = [p for p in all_players if p not in current_players]
+            replacement_player = st.selectbox(
+                "Replacement player",
+                replacement_pool,
+                key="replacement_player",
+                format_func=lambda p: display_map.get(p, p),
+            ) if replacement_pool else None
+
+            if st.button("Replace Player"):
+                if not withdrawn_player:
+                    st.warning("Select the withdrawn player.")
+                elif not replacement_player:
+                    st.warning("No replacement players available. Add or select another player first.")
+                else:
+                    g, p = _find_player_slot(final_groups, withdrawn_player)
+                    if g is None:
+                        st.error("Withdrawn player not found in current fourballs.")
+                    else:
+                        final_groups[g][p] = replacement_player
+                        st.session_state["pairing_generated_groups"] = final_groups
+                        st.success("Player replaced.")
+                        st.rerun()
+
+        if st.button("Reset Manual Changes"):
+            st.session_state["pairing_generated_groups"] = [
+                list(g) for g in st.session_state.get("pairing_generated_groups_original", [])
+            ]
+            st.success("Manual changes reset to the generated fourballs.")
+            st.rerun()
 
 
 # ---------------------------------------------------------
