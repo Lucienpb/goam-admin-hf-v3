@@ -159,7 +159,7 @@ def _default_scorecard_fields(template_rows):
     return base
 
 
-def _build_scorecard_from_fourballs(groups, template_rows):
+def _build_scorecard_from_fourballs(groups, template_rows, display_map, team_name_map):
     template_by_name = {
         str(row.get("Name", "")).strip().lower(): row
         for row in template_rows
@@ -172,10 +172,12 @@ def _build_scorecard_from_fourballs(groups, template_rows):
         for player in group:
             name_key = str(player).strip().lower()
             template_row = template_by_name.get(name_key, {})
+            display_name = display_map.get(player, player)
 
-            row = {"Name": player}
+            row = {"Name": display_name}
             for field, default_val in default_fields.items():
                 row[field] = template_row.get(field, default_val)
+            row["LIV"] = team_name_map.get(player, row.get("LIV", ""))
             row["Fourball"] = i
             rows.append(row)
 
@@ -352,6 +354,13 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 
     st.caption(f"Players selected this month: {len(selected_players)}")
 
+    team_name_map = dict(
+        zip(
+            players_df["name"].apply(lambda x: normalize_name(x, alias_map)),
+            players_df["team"].fillna("")
+        )
+    )
+
     # TEAM INITIALS
     teams = dict(
         zip(
@@ -367,6 +376,7 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
     }
     for gid in guest_players:
         teams[gid] = ""
+        team_name_map[gid] = ""
 
     # WALKING / CARTING TABLE
     st.subheader("🚶‍♂️ / 🛺 Walking or Carting")
@@ -551,7 +561,12 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
             )
 
             if st.button("Create Scorecard JSON"):
-                scorecard_rows = _build_scorecard_from_fourballs(final_groups, template_rows)
+                scorecard_rows = _build_scorecard_from_fourballs(
+                    final_groups,
+                    template_rows,
+                    display_map,
+                    team_name_map,
+                )
                 st.session_state["pairing_generated_scorecard_rows"] = scorecard_rows
 
             scorecard_rows = st.session_state.get("pairing_generated_scorecard_rows", [])
