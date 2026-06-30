@@ -5,9 +5,11 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import json
 from itertools import combinations
+from pathlib import Path
 
-from utils.json_utils import load_json
+from utils.json_utils import load_json, save_json
 from utils.fourball_generator import generate_fourballs
 from utils.name_utils import (
     normalize_name,
@@ -115,6 +117,71 @@ def _find_player_slot(groups, player):
     return None, None
 
 
+def _load_scorecard_template_json():
+    template_json_path = "data/scorecard_template.json"
+    template_csv_path = Path("data/scorecard_template.csv")
+
+    template_data = load_json(template_json_path)
+    if isinstance(template_data, list) and template_data:
+        return template_data
+
+    if template_csv_path.exists():
+        df_template = pd.read_csv(template_csv_path).fillna("")
+        template_data = df_template.to_dict(orient="records")
+        save_json(template_json_path, template_data)
+        return template_data
+
+    return []
+
+
+def _default_scorecard_fields(template_rows):
+    if not template_rows:
+        return {
+            "Strokes": "",
+            "IPS": "",
+            "LIV": "",
+            "Handicap": "",
+            "NP1": "",
+            "NP2": "",
+            "LD1": "",
+            "LD2": "",
+            "BG": "",
+            "BN": "",
+            "Pool Bet": "",
+            "Pool Payouts": "",
+            "Fines": "",
+        }
+
+    base = {}
+    for col in template_rows[0].keys():
+        if col != "Name":
+            base[col] = ""
+    return base
+
+
+def _build_scorecard_from_fourballs(groups, template_rows):
+    template_by_name = {
+        str(row.get("Name", "")).strip().lower(): row
+        for row in template_rows
+        if str(row.get("Name", "")).strip()
+    }
+    default_fields = _default_scorecard_fields(template_rows)
+
+    rows = []
+    for i, group in enumerate(groups, 1):
+        for player in group:
+            name_key = str(player).strip().lower()
+            template_row = template_by_name.get(name_key, {})
+
+            row = {"Name": player}
+            for field, default_val in default_fields.items():
+                row[field] = template_row.get(field, default_val)
+            row["Fourball"] = i
+            rows.append(row)
+
+    return rows
+
+
 # ---------------------------------------------------------
 # MATRIX PAGE
 # ---------------------------------------------------------
@@ -210,6 +277,7 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 
     matrix = build_pairing_matrix(pairings_json, players_df, alias_map)
     matrix_players = list(matrix.index)
+    template_rows = _load_scorecard_template_json()
 
     if "pairing_generated_groups" not in st.session_state:
         st.session_state["pairing_generated_groups"] = []
@@ -379,6 +447,7 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 
         st.session_state["pairing_generated_groups"] = [list(g) for g in final_groups]
         st.session_state["pairing_generated_groups_original"] = [list(g) for g in final_groups]
+        st.session_state["pairing_generated_scorecard_rows"] = []
 
     final_groups = st.session_state.get("pairing_generated_groups", [])
 
@@ -465,6 +534,35 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
             ]
             st.success("Manual changes reset to the generated fourballs.")
             st.rerun()
+
+        st.subheader("🧾 Scorecard from Fourballs")
+        if not template_rows:
+            st.warning("No scorecard template found. Add data/scorecard_template.json or data/scorecard_template.csv.")
+        else:
+            if st.button("Create Scorecard JSON"):
+                scorecard_rows = _build_scorecard_from_fourballs(final_groups, template_rows)
+                st.session_state["pairing_generated_scorecard_rows"] = scorecard_rows
+
+            scorecard_rows = st.session_state.get("pairing_generated_scorecard_rows", [])
+            if scorecard_rows:
+                st.dataframe(pd.DataFrame(scorecard_rows), hide_index=True, use_container_width=True)
+
+                save_path = "data/generated_scorecard.json"
+                json_payload = {
+                    "scorecard": scorecard_rows
+                }
+
+                st.download_button(
+                    label="Download generated scorecard JSON",
+                    data=json.dumps(json_payload, indent=2),
+                    file_name="generated_scorecard.json",
+                    mime="application/json",
+                    use_container_width=True,
+                )
+
+                if st.button("Save generated scorecard to data/generated_scorecard.json"):
+                    save_json(save_path, json_payload)
+                    st.success("Saved generated scorecard to data/generated_scorecard.json")
 
 
 # ---------------------------------------------------------
