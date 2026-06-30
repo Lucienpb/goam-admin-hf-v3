@@ -187,7 +187,7 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
     st.header("🏌️ 4‑Ball Generator")
 
     matrix = build_pairing_matrix(pairings_json, players_df, alias_map)
-    all_players = list(matrix.index)
+    matrix_players = list(matrix.index)
 
     # Persist guest players across reruns so they remain in the selector.
     if "pairing_guest_players" not in st.session_state:
@@ -197,11 +197,8 @@ def show_generator_page(players_df, pairings_json, alias_map, display_map):
 
     for guest_id, guest_meta in guest_players.items():
         display_map[guest_id] = guest_meta.get("name", guest_id)
-        if guest_id not in matrix.index:
-            matrix.loc[guest_id] = 0
-            matrix[guest_id] = 0
 
-    all_players = list(matrix.index)
+    all_players = matrix_players + [gid for gid in guest_players if gid not in matrix_players]
 
     if "pairing_selected_players" not in st.session_state:
         st.session_state["pairing_selected_players"] = all_players.copy()
